@@ -139,7 +139,7 @@ func (s *prepare3FSConfigStep) genConfigs(tmpDir string) error {
 	nodeID := nodeIDI.(int)
 	var mgmtdServerAddresses string
 
-	if valI, ok := s.Runtime.Load(task.RuntimeMgmtdServerAddresseslKey); ok {
+	if valI, ok := s.Runtime.Load(task.RuntimeMgmtdServerAddressesKey); ok {
 		mgmtdServerAddresses = valI.(string)
 	}
 
@@ -331,7 +331,7 @@ func NewRm3FSContainerStepFunc(containerName, service, serviceWorkDir string) fu
 }
 
 func getMgmtdServerAddresses(r *task.Runtime) string {
-	addrI, ok := r.Load(task.RuntimeMgmtdServerAddresseslKey)
+	addrI, ok := r.Load(task.RuntimeMgmtdServerAddressesKey)
 	if !ok {
 		return ""
 	}

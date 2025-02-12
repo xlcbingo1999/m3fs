@@ -14,7 +14,7 @@ import (
 // defines keys of runtime cache.
 const (
 	RuntimeFdbClusterFileContentKey = "fdb_cluster_file_content"
-	RuntimeMgmtdServerAddresseslKey = "mgmtd_server_addresses"
+	RuntimeMgmtdServerAddressesKey  = "mgmtd_server_addresses"
 	RuntimeAdminCliTomlKey          = "admin_cli_toml"
 )
 
@@ -45,7 +45,7 @@ func (r *Runner) Init() {
 	runtime.Services = &r.cfg.Services
 	em := external.NewManager(external.NewLocalRunner(&external.LocalRunnerCfg{
 		Logger:         logrus.StandardLogger(),
-		MaxExitTimeout: r.cfg.CmdMaxExitTimout,
+		MaxExitTimeout: r.cfg.CmdMaxExitTimeout,
 	}))
 	runtime.LocalEm = em
 

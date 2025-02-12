@@ -46,7 +46,7 @@ func (s Set[T]) ToSlice() []T {
 	return ret
 }
 
-// Equal check two set euqal
+// Equal check two set equal
 func (s Set[T]) Equal(other Set[T]) bool {
 	if len(s) != len(other) {
 		return false

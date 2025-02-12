@@ -53,7 +53,7 @@ func CopyFields(dest, src any, fields ...string) error {
 // UpdateStructByMap set map's values to struct's fields,
 // it will ignore fields that don't exist in the struct.
 // return:
-// updateFields: the updated fields to strcut, the slice element format is snake
+// updateFields: the updated fields to struct, the slice element format is snake
 func UpdateStructByMap(target any, source map[string]any) ([]string, error) {
 	if len(source) == 0 {
 		return nil, nil

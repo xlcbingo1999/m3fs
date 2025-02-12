@@ -117,7 +117,7 @@ func (s *initClusterStep) Execute(ctx context.Context) error {
 		node := s.Runtime.Nodes[nodeName]
 		address[i] = fmt.Sprintf(`"RDMA://%s"`, net.JoinHostPort(node.Host, port))
 	}
-	s.Runtime.Store(task.RuntimeMgmtdServerAddresseslKey,
+	s.Runtime.Store(task.RuntimeMgmtdServerAddressesKey,
 		fmt.Sprintf(`[%s]`, strings.Join(address, ",")))
 
 	s.Logger.Infof("Cluster initialization success")

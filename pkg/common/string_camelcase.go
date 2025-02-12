@@ -1,4 +1,4 @@
-// The support for split camelcase word to a list of words implementated by
+// The support for split camelcase word to a list of words implemented by
 // github.com/fatih/camelcase.
 // Original file: https://github.com/fatih/camelcase/blob/master/camelcase.go
 // Give credit where credit is due.
