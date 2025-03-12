@@ -44,7 +44,7 @@ func (s *dockerRunSuite) Test() {
 	}
 	mockCmd := "docker run --name 3fs-clickhouse --detach --network host -e A=B -p 127.0.0.1:9000:9000/tcp " +
 		"--volume /path/to/data:/clickhouse/data clickhouse/clickhouse-server:latest"
-	s.mc.Mock(mockCmd, "", nil)
+	s.r.MockExec(mockCmd, "", nil)
 	_, err := s.em.Docker.Run(s.Ctx(), args)
 	s.NoError(err)
 }

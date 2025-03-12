@@ -25,10 +25,12 @@ func (eb *externalBase) init(em *Manager) {
 	eb.log = log.StandardLogger()
 }
 
-func (eb *externalBase) runWithAny(ctx context.Context, cmdName string, args ...any) (*bytes.Buffer, error) {
+func (eb *externalBase) runWithAny(
+	ctx context.Context, cmdName string, args ...any) (*bytes.Buffer, error) {
+
 	cmd := NewCommand(cmdName, args...)
 	cmd.runner = eb.em.runner
-	out, err := cmd.Execute(ctx)
+	out, err := cmd.Exec(ctx)
 	if err != nil {
 		return out, errors.Annotatef(err, "run cmd [%s]", cmd.String())
 	}
@@ -66,7 +68,6 @@ type Manager struct {
 	Net    NetInterface
 	Docker DockerInterface
 	Disk   DiskInterface
-	SSH    SSHInterface
 	OS     OSInterface
 }
 
