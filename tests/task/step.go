@@ -54,8 +54,19 @@ registry:
 		OS:     s.MockOS,
 		Docker: s.MockDocker,
 	}
+
+	s.SetupRuntime()
+}
+
+// SetupRuntime setup runtime with the test config.
+func (s *StepSuite) SetupRuntime() {
 	s.Runtime = &task.Runtime{
 		Cfg:      s.Cfg,
 		Services: &s.Cfg.Services,
 	}
+	s.Runtime.Nodes = make(map[string]config.Node, len(s.Cfg.Nodes))
+	for _, node := range s.Cfg.Nodes {
+		s.Runtime.Nodes[node.Name] = node
+	}
+	s.Runtime.Services = &s.Cfg.Services
 }

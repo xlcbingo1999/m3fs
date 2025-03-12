@@ -12,6 +12,7 @@ import (
 type DockerInterface interface {
 	GetContainer(string) string
 	Run(ctx context.Context, args *RunArgs) (out *bytes.Buffer, err error)
+	Exec(context.Context, string, string, ...string) (*bytes.Buffer, error)
 }
 
 type dockerExternal struct {
@@ -81,6 +82,15 @@ func (de *dockerExternal) Run(ctx context.Context, args *RunArgs) (out *bytes.Bu
 		params = append(params, "--volume", fmt.Sprintf("%s:%s", volumeArg.Source, volumeArg.Target))
 	}
 	params = append(params, args.Image)
+	out, err = de.run(ctx, "docker", params...)
+	return out, errors.Trace(err)
+}
+
+func (de *dockerExternal) Exec(
+	ctx context.Context, container, cmd string, args ...string) (out *bytes.Buffer, err error) {
+
+	params := []string{"exec", container, cmd}
+	params = append(params, args...)
 	out, err = de.run(ctx, "docker", params...)
 	return out, errors.Trace(err)
 }
