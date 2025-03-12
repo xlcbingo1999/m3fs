@@ -48,3 +48,18 @@ func (s *dockerRunSuite) Test() {
 	_, err := s.em.Docker.Run(s.Ctx(), args)
 	s.NoError(err)
 }
+
+func TestDockerExecSuite(t *testing.T) {
+	suiteRun(t, new(dockerExecSuite))
+}
+
+type dockerExecSuite struct {
+	Suite
+}
+
+func (s *dockerExecSuite) Test() {
+	mockCmd := "docker exec fdb fdbcli --exec status"
+	s.r.MockExec(mockCmd, "", nil)
+	_, err := s.em.Docker.Exec(s.Ctx(), "fdb", "fdbcli", "--exec", "status")
+	s.NoError(err)
+}

@@ -31,14 +31,15 @@ func (f *frame) valid() bool {
 }
 
 func (f *frame) cleanFuncName(callName string) string {
-	if i := strings.IndexByte(callName, '.'); i != -1 {
+	if i := strings.LastIndexByte(callName, '/'); i != -1 {
+		// remove github.com/org/repo/ in github.com/org/repo/FileName.TypeName.MethodName
 		callName = callName[i+1:]
-		if i := strings.IndexByte(callName, '.'); i != -1 {
-			// remove FileName in callName:
-			//   FileName.TypeName.MethodName
-			//   FileName.FunctionName
-			callName = callName[i+1:]
-		}
+	}
+	if i := strings.IndexByte(callName, '.'); i != -1 {
+		// remove FileName in callName:
+		//   FileName.TypeName.MethodName
+		//   FileName.FunctionName
+		callName = callName[i+1:]
 	}
 	return callName
 }
