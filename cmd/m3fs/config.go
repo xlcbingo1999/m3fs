@@ -46,48 +46,58 @@ var configCmd = &cli.Command{
 var sampleConfigTemplate = `name: "{{.name}}"
 networktype: "RDMA"
 nodes:
-  - name: "node1"
-    ip: "10.1.xx.xx"
+  - name: meta
+    ip: "192.168.1.1"
     username: "root"
     password: "password"
     rdmaAddresses:
-      - "10.1.xx.xx"
-  - name: "node2"
-    ip: "10.2.xx.xx"
+      - "10.0.0.1"
+  - name: storage1
+    ip: "192.168.1.2"
     username: "root"
     password: "password"
     rdmaAddresses:
-      - "10.2.xx.xx"
+      - "10.0.0.2"
+  - name: storage2
+    ip: "192.168.1.3"
+    username: "root"
+    password: "password"
+    rdmaAddresses:
+      - "10.0.0.3"
 services:
   fdb:
     containerName: 3fs-fdb
     nodes: 
-      - "node1"
+      - meta
     workDir: "/root/3fs/fdb"
   clickhouse:
     containerName: 3fs-clickhouse
     nodes: 
-      - "node1"
+      - meta
     workDir: "/root/3fs/clickhouse"
+  monitor:
+    containerName: 3fs-monitor
+    nodes:
+      - meta
+    workDir: "/root/3fs/monitor"
   mgmtd:
     containerName: 3fs-mgmtd
     nodes: 
-      - "node1"
+      - meta
   meta:
     containerName: 3fs-meta
     nodes: 
-      - "node1"
+      - meta
   storage:
     containerName: 3fs-storage
     nodes: 
-      - "node1"
-      - "node2"
+      - storage1
+      - storage2
     disktype: "NVMe"
   client:
     containerName: 3fs-fuseclient
     nodes: 
-      - "node1"
-      - "node2"
+      - meta
 registry:
   customRegistry: ""
 `
