@@ -60,25 +60,31 @@ nodes:
       - "10.2.xx.xx"
 services:
   fdb:
+    containerName: 3fs-fdb
     nodes: 
       - "node1"
-    dataDir: "/root/3fs/fdb/data"
+    workDir: "/root/3fs/fdb"
   clickhouse:
+    containerName: 3fs-clickhouse
     nodes: 
       - "node1"
-    dataDir: "/root/3fs/fdb/data"
+    workDir: "/root/3fs/clickhouse"
   mgmtd:
+    containerName: 3fs-mgmtd
     nodes: 
       - "node1"
   meta:
+    containerName: 3fs-meta
     nodes: 
       - "node1"
   storage:
+    containerName: 3fs-storage
     nodes: 
       - "node1"
       - "node2"
     disktype: "NVMe"
   client:
+    containerName: 3fs-fuseclient
     nodes: 
       - "node1"
       - "node2"

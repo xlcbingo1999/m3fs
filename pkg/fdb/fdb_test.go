@@ -10,57 +10,26 @@ import (
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/external"
 	"github.com/open3fs/m3fs/pkg/image"
-	"github.com/open3fs/m3fs/pkg/task"
-	"github.com/open3fs/m3fs/tests/base"
-	texternal "github.com/open3fs/m3fs/tests/external"
+	ttask "github.com/open3fs/m3fs/tests/task"
 )
 
 var suiteRun = suite.Run
-
-type baseSuite struct {
-	base.Suite
-
-	cfg        *config.Config
-	runtime    *task.Runtime
-	em         *external.Manager
-	mockOS     *texternal.MockOS
-	mockDocker *texternal.MockDocker
-}
-
-func (s *baseSuite) SetupTest() {
-	s.cfg = new(config.Config)
-	s.mockOS = new(texternal.MockOS)
-	s.mockDocker = new(texternal.MockDocker)
-	s.em = &external.Manager{
-		OS:     s.mockOS,
-		Docker: s.mockDocker,
-	}
-}
-
-func (s *baseSuite) setupRuntime() {
-	s.runtime = &task.Runtime{Cfg: s.cfg}
-	s.runtime.Nodes = make(map[string]config.Node, len(s.cfg.Nodes))
-	for _, node := range s.cfg.Nodes {
-		s.runtime.Nodes[node.Name] = node
-	}
-	s.runtime.Services = s.cfg.Services
-}
 
 func TestGenClusterFileContentStep(t *testing.T) {
 	suiteRun(t, &genClusterFileContentStepSuite{})
 }
 
 type genClusterFileContentStepSuite struct {
-	baseSuite
+	ttask.StepSuite
 
 	step *genClusterFileContentStep
 }
 
 func (s *genClusterFileContentStepSuite) SetupTest() {
-	s.baseSuite.SetupTest()
+	s.StepSuite.SetupTest()
 
 	s.step = &genClusterFileContentStep{}
-	s.cfg.Nodes = []config.Node{
+	s.Cfg.Nodes = []config.Node{
 		{
 			Name: "node1",
 			Host: "1.1.1.1",
@@ -70,16 +39,19 @@ func (s *genClusterFileContentStepSuite) SetupTest() {
 			Host: "1.1.1.2",
 		},
 	}
-	s.cfg.Services.Fdb.Nodes = []string{"node1", "node2"}
-	s.cfg.Services.Fdb.Port = 4500
-	s.setupRuntime()
-	s.step.Init(s.runtime, s.em)
+	s.Runtime.Nodes = make(map[string]config.Node, len(s.Cfg.Nodes))
+	for _, node := range s.Cfg.Nodes {
+		s.Runtime.Nodes[node.Name] = node
+	}
+	s.Cfg.Services.Fdb.Nodes = []string{"node1", "node2"}
+	s.Cfg.Services.Fdb.Port = 4500
+	s.step.Init(s.Runtime, s.MockedEm)
 }
 
 func (s *genClusterFileContentStepSuite) TestGenClusterFileContentStep() {
 	s.NoError(s.step.Execute(s.Ctx()))
 
-	contentI, ok := s.runtime.Load("fdb_cluster_file_content")
+	contentI, ok := s.Runtime.Load("fdb_cluster_file_content")
 	s.True(ok)
 	s.Equal("node1:node1@1.1.1.1:4500,node2:node2@1.1.1.2:4500", contentI.(string))
 }
@@ -89,31 +61,29 @@ func TestStartContainerStep(t *testing.T) {
 }
 
 type startContainerStepSuite struct {
-	baseSuite
+	ttask.StepSuite
 
 	step *startContainerStep
 }
 
 func (s *startContainerStepSuite) SetupTest() {
-	s.baseSuite.SetupTest()
+	s.StepSuite.SetupTest()
 
 	s.step = &startContainerStep{}
-	s.cfg.Services.Fdb.DataDir = "/var/fdb"
-	s.setupRuntime()
-	s.step.Init(s.runtime, s.em)
-	s.runtime.Store("fdb_cluster_file_content", "xxxx")
+	s.step.Init(s.Runtime, s.MockedEm)
+	s.Runtime.Store("fdb_cluster_file_content", "xxxx")
 }
 
 func (s *startContainerStepSuite) TestStartContainerStep() {
-	dataDir := "/var/fdb/data"
-	logDir := "/var/fdb/log"
-	s.mockOS.On("Exec", "mkdir", []string{"-p", dataDir}).Return("", nil)
-	s.mockOS.On("Exec", "mkdir", []string{"-p", logDir}).Return("", nil)
+	dataDir := "/root/3fs/fdb/data"
+	logDir := "/root/3fs/fdb/log"
+	s.MockOS.On("Exec", "mkdir", []string{"-p", dataDir}).Return("", nil)
+	s.MockOS.On("Exec", "mkdir", []string{"-p", logDir}).Return("", nil)
 	img, err := image.GetImage("", "fdb")
 	s.NoError(err)
-	s.mockDocker.On("Run", &external.RunArgs{
+	s.MockDocker.On("Run", &external.RunArgs{
 		Image:       img,
-		Name:        common.Pointer("fdb"),
+		Name:        common.Pointer("3fs-fdb"),
 		HostNetwork: true,
 		Envs: map[string]string{
 			"FDB_CLUSTER_FILE_CONTENTS": "xxxx",
@@ -133,6 +103,6 @@ func (s *startContainerStepSuite) TestStartContainerStep() {
 	s.NotNil(s.step)
 	s.NoError(s.step.Execute(s.Ctx()))
 
-	s.mockOS.AssertExpectations(s.T())
-	s.mockDocker.AssertExpectations(s.T())
+	s.MockOS.AssertExpectations(s.T())
+	s.MockDocker.AssertExpectations(s.T())
 }

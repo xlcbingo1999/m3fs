@@ -48,7 +48,7 @@ func (s *runnerSuite) TestRun() {
 	s.mockTask.On("Name").Return("mockTask")
 	s.mockTask.On("Run").Return(nil)
 
-	s.runner.Run(s.Ctx())
+	s.NoError(s.runner.Run(s.Ctx()))
 
 	s.mockTask.AssertExpectations(s.T())
 }
