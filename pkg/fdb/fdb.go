@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/open3fs/m3fs/pkg/common"
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
 	"github.com/open3fs/m3fs/pkg/external"
@@ -43,15 +42,15 @@ type startContainerStep struct {
 }
 
 func (s *startContainerStep) Execute(ctx context.Context) error {
-	dataDir := path.Join(s.Runtime.Services.Fdb.DataDir, "data")
+	dataDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "data")
 	_, err := s.Em.OS.Exec(ctx, "mkdir", "-p", dataDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", dataDir)
 	}
-	logDir := path.Join(s.Runtime.Services.Fdb.DataDir, "log")
+	logDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "log")
 	_, err = s.Em.OS.Exec(ctx, "mkdir", "-p", logDir)
 	if err != nil {
-		return errors.Annotatef(err, "mkdir %s", dataDir)
+		return errors.Annotatef(err, "mkdir %s", logDir)
 	}
 	img, err := image.GetImage(s.Runtime.Cfg.Registry.CustomRegistry, "fdb")
 	if err != nil {
@@ -61,7 +60,7 @@ func (s *startContainerStep) Execute(ctx context.Context) error {
 	clusterContent := clusterContentI.(string)
 	args := &external.RunArgs{
 		Image:       img,
-		Name:        common.Pointer("fdb"),
+		Name:        &s.Runtime.Services.Fdb.ContainerName,
 		HostNetwork: true,
 		Envs: map[string]string{
 			"FDB_CLUSTER_FILE_CONTENTS": clusterContent,
@@ -82,7 +81,7 @@ func (s *startContainerStep) Execute(ctx context.Context) error {
 		return errors.Trace(err)
 	}
 
-	s.Logger.Infof("Start fdb container success")
+	s.Logger.Infof("Started container %s", s.Runtime.Services.Fdb.ContainerName)
 	return nil
 }
 

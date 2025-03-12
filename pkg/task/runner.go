@@ -15,7 +15,7 @@ type Runtime struct {
 	sync.Map
 	Cfg      *config.Config
 	Nodes    map[string]config.Node
-	Services config.Services
+	Services *config.Services
 	// TODO: set work dir
 	WorkDir string
 }
@@ -34,7 +34,7 @@ func (r *Runner) Init() {
 	for _, node := range r.cfg.Nodes {
 		runtime.Nodes[node.Name] = node
 	}
-	runtime.Services = r.cfg.Services
+	runtime.Services = &r.cfg.Services
 
 	for _, task := range r.tasks {
 		task.Init(runtime)

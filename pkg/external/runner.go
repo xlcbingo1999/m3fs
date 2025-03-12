@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/pkg/sftp"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 
 	"github.com/open3fs/m3fs/pkg/errors"
@@ -26,6 +27,7 @@ type RunInterface interface {
 // RemoteRunner implements RunInterface by running command on a remote host.
 type RemoteRunner struct {
 	mu         sync.Mutex
+	log        *log.Logger
 	sshClient  *ssh.Client
 	sftpClient *sftp.Client
 }
@@ -38,7 +40,11 @@ func (r *RemoteRunner) Exec(ctx context.Context, command string, args ...string)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	defer session.Close()
+	defer func() {
+		if err := session.Close(); err != nil {
+			r.log.Warnf("Failed to close session: %v", err)
+		}
+	}()
 
 	var output bytes.Buffer
 	session.Stdout = &output
@@ -81,7 +87,9 @@ func (r *RemoteRunner) Close() {
 	if r.sshClient == nil {
 		return
 	}
-	r.sshClient.Close()
+	if err := r.sshClient.Close(); err != nil {
+		r.log.Warnf("Failed to close SSH client: %+v", err)
+	}
 	r.sshClient = nil
 }
 
@@ -108,12 +116,20 @@ func (r *RemoteRunner) copyFileToRemote(local, remote string) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	defer localFile.Close()
+	defer func() {
+		if err := localFile.Close(); err != nil {
+			r.log.Warnf("Failed to close local file: %+v", err)
+		}
+	}()
 	remoteFile, err := r.sftpClient.Create(remote)
 	if err != nil {
 		return err
 	}
-	defer remoteFile.Close()
+	defer func() {
+		if err := remoteFile.Close(); err != nil {
+			r.log.Warnf("Failed to remote local file: %+v", err)
+		}
+	}()
 	_, err = io.Copy(remoteFile, localFile)
 	return errors.Trace(err)
 }
@@ -178,6 +194,7 @@ func NewRemoteRunner(cfg *RemoteRunnerCfg) (*RemoteRunner, error) {
 		return nil, errors.Annotatef(err, "new sftp client")
 	}
 	runner := &RemoteRunner{
+		log:        log.StandardLogger(),
 		sshClient:  sshClient,
 		sftpClient: sftpClient,
 	}

@@ -32,37 +32,43 @@ type Node struct {
 
 // Fdb is the fdb config definition
 type Fdb struct {
+	ContainerName      string `yaml:"containerName"`
 	Nodes              []string
 	Port               int
-	DataDir            string
+	WorkDir            string `yaml:"workDir"`
 	WaitClusterTimeout time.Duration
 }
 
-// Clickhouse is the clickhouse config definition
+// Clickhouse is the click house config definition
 type Clickhouse struct {
-	Nodes   []string
-	DataDir string
+	ContainerName string `yaml:"containerName"`
+	Nodes         []string
+	WorkDir       string `yaml:"workDir"`
 }
 
 // Mgmtd is the 3fs mgmtd service config definition
 type Mgmtd struct {
-	Nodes []string
+	ContainerName string `yaml:"containerName"`
+	Nodes         []string
 }
 
 // Meta is the 3fs meta service config definition
 type Meta struct {
-	Nodes []string
+	ContainerName string `yaml:"containerName"`
+	Nodes         []string
 }
 
 // Storage is the 3fs storage config definition
 type Storage struct {
-	Nodes    []string
-	DiskType DiskType
+	ContainerName string `yaml:"containerName"`
+	Nodes         []string
+	DiskType      DiskType
 }
 
 // Client is the 3fs client config definition
 type Client struct {
-	Nodes []string
+	ContainerName string `yaml:"containerName"`
+	Nodes         []string
 }
 
 // Services is the services config definition
@@ -85,6 +91,6 @@ type Config struct {
 	Name        string
 	NetworkType NetworkType
 	Nodes       []Node
-	Services    Services
+	Services    Services `yaml:"services"`
 	Registry    Registry
 }
