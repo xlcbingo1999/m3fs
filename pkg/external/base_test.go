@@ -16,7 +16,7 @@ var suiteRun = suite.Run
 type Suite struct {
 	suite.Suite
 
-	mc *MockedCommands
+	r  *MockedRunner
 	em *external.Manager
 }
 
@@ -25,8 +25,8 @@ func (s *Suite) SetupSuite() {
 }
 
 func (s *Suite) SetupTest() {
-	s.mc = NewMockedCommands(s.T())
-	s.em = external.NewManager(s.mc)
+	s.r = NewMockedRunner(s.T())
+	s.em = external.NewManager(s.r)
 }
 
 // Ctx returns a context used in test.

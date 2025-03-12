@@ -14,7 +14,7 @@ type osExecSuite struct {
 
 func (s *osExecSuite) Test() {
 	mockCmd := "mkdir -p /tmp/m3fs"
-	s.mc.Mock(mockCmd, "", nil)
+	s.r.MockExec(mockCmd, "", nil)
 	_, err := s.em.OS.Exec(s.Ctx(), "mkdir", "-p", "/tmp/m3fs")
 	s.NoError(err)
 }
