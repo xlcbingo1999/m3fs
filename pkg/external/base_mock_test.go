@@ -8,35 +8,35 @@ import (
 	"testing"
 )
 
-// CommandCheckFunc is the type of check function can be add to mocked commands
-type CommandCheckFunc func(mc *MockedCommands, command string, args ...string) (
+// ExecCheckFunc is the type of check function for Exec.
+type ExecCheckFunc func(mr *MockedRunner, command string, args ...string) (
 	*bytes.Buffer, error)
 
-// MockedCommandResult mocks command result
-type MockedCommandResult struct {
+// MockedExecResult mocks result of the Exec func
+type MockedExecResult struct {
 	value     string
 	err       error
-	checkFunc CommandCheckFunc
+	checkFunc ExecCheckFunc
 	Called    bool
 	Count     int
 	times     int
 }
 
-// Value returns the value saved in MockedCommandResult
-func (mcr *MockedCommandResult) Value() string {
-	return mcr.value
+// Value returns the value saved in MockedExecResult
+func (r *MockedExecResult) Value() string {
+	return r.value
 }
 
-// Error returns the error saved in MockedCommandResult
-func (mcr *MockedCommandResult) Error() error {
-	return mcr.err
+// Error returns the error saved in MockedExecResult
+func (r *MockedExecResult) Error() error {
+	return r.err
 }
 
-// MockedCommandsResults defines mocked results
-type MockedCommandsResults []*MockedCommandResult
+// MockedExecResults defines mocked exec results
+type MockedExecResults []*MockedExecResult
 
 // Count returns called times of all mocked results
-func (rs MockedCommandsResults) Count() int {
+func (rs MockedExecResults) Count() int {
 	var count int
 	for _, r := range rs {
 		count += r.Count
@@ -44,8 +44,8 @@ func (rs MockedCommandsResults) Count() int {
 	return count
 }
 
-// Called checks if command is called
-func (rs MockedCommandsResults) Called() bool {
+// Called checks if Exec func is called
+func (rs MockedExecResults) Called() bool {
 	for _, r := range rs {
 		if r.Called {
 			return true
@@ -54,27 +54,83 @@ func (rs MockedCommandsResults) Called() bool {
 	return false
 }
 
-// MockedCommands mocks commands
-type MockedCommands struct {
-	t    *testing.T
-	cmds map[string]MockedCommandsResults
+// ScpCheckFunc is the type of check function for Scp.
+type ScpCheckFunc func(mc *MockedRunner, local, remote string) error
+
+// MockedScpResult mocks result of the Scp func
+type MockedScpResult struct {
+	err       error
+	checkFunc ScpCheckFunc
+	Called    bool
+	Count     int
+	times     int
+}
+
+// Error returns the error saved in MockedScpResult
+func (r *MockedScpResult) Error() error {
+	return r.err
+}
+
+// MockedScpResults defines mocked scp results
+type MockedScpResults []*MockedScpResult
+
+// Count returns called times of all mocked results
+func (rs MockedScpResults) Count() int {
+	var count int
+	for _, r := range rs {
+		count += r.Count
+	}
+	return count
+}
+
+// Called checks if Scp func is called
+func (rs MockedScpResults) Called() bool {
+	for _, r := range rs {
+		if r.Called {
+			return true
+		}
+	}
+	return false
+}
+
+// MockedRunner mocks RunInterface
+type MockedRunner struct {
+	t           *testing.T
+	execResults map[string]MockedExecResults
+	scpResults  map[string]MockedScpResults
+}
+
+// Reset reset all mocked results
+func (mr *MockedRunner) Reset() {
+	for k := range mr.execResults {
+		for _, r := range mr.execResults[k] {
+			r.Called = false
+			r.Count = 0
+		}
+	}
+	for k := range mr.scpResults {
+		for _, r := range mr.scpResults[k] {
+			r.Called = false
+			r.Count = 0
+		}
+	}
 }
 
 // Add add mocked command prefix
-func (mc *MockedCommands) Add(cmdPrefix string, returnValue string, returnError error,
-	checkFunc CommandCheckFunc, times ...int) {
+func (mr *MockedRunner) AddExec(cmdPrefix string, returnValue string, returnError error,
+	checkFunc ExecCheckFunc, times ...int) {
 
 	mockedTimes := -1 // forever
 	if len(times) > 0 {
 		mockedTimes = times[0]
 	}
-	results, ok := mc.cmds[cmdPrefix]
+	results, ok := mr.execResults[cmdPrefix]
 	if !ok {
-		results = MockedCommandsResults{}
+		results = MockedExecResults{}
 	}
 	if len(results) > 0 && results[0].times > 0 {
 		results = append(results,
-			&MockedCommandResult{
+			&MockedExecResult{
 				value:     returnValue,
 				err:       returnError,
 				checkFunc: checkFunc,
@@ -82,8 +138,8 @@ func (mc *MockedCommands) Add(cmdPrefix string, returnValue string, returnError 
 			},
 		)
 	} else {
-		results = MockedCommandsResults{
-			&MockedCommandResult{
+		results = MockedExecResults{
+			&MockedExecResult{
 				value:     returnValue,
 				err:       returnError,
 				checkFunc: checkFunc,
@@ -91,55 +147,40 @@ func (mc *MockedCommands) Add(cmdPrefix string, returnValue string, returnError 
 			},
 		}
 	}
-	mc.cmds[cmdPrefix] = results
+	mr.execResults[cmdPrefix] = results
 }
 
 // Mock mocks command for times
-func (mc *MockedCommands) Mock(
+func (mr *MockedRunner) MockExec(
 	cmdPrefix string, returnValue string, returnError error, times ...int) {
 
-	mc.Add(cmdPrefix, returnValue, returnError, nil, times...)
+	mr.AddExec(cmdPrefix, returnValue, returnError, nil, times...)
 }
 
 // MockOnce mocks command once
-func (mc *MockedCommands) MockOnce(cmdPrefix string, returnValue string, returnError error) {
-	mc.Mock(cmdPrefix, returnValue, returnError, 1)
+func (mr *MockedRunner) MockExecOnce(cmdPrefix string, returnValue string, returnError error) {
+	mr.MockExec(cmdPrefix, returnValue, returnError, 1)
 }
 
-// CalledCount returns called count for specific cmd prefix
-func (mc *MockedCommands) CalledCount(cmdPrefix string) int {
-	if _, ok := mc.cmds[cmdPrefix]; !ok {
+// CalledExecCount returns called Exec count for specific cmd prefix
+func (mr *MockedRunner) CalledExecCount(cmdPrefix string) int {
+	if _, ok := mr.execResults[cmdPrefix]; !ok {
 		return 0
 	}
-	return mc.cmds[cmdPrefix].Count()
+	return mr.execResults[cmdPrefix].Count()
 }
 
-// Get returns mocked results for cmd prefix
-func (mc *MockedCommands) Get(cmdPrefix string) MockedCommandsResults {
-	return mc.cmds[cmdPrefix]
-}
-
-// Reset reset all mocked commands' result
-func (mc *MockedCommands) Reset() {
-	for k := range mc.cmds {
-		for _, r := range mc.cmds[k] {
-			r.Called = false
-			r.Count = 0
-		}
-	}
-}
-
-// Run command with mocked command
-func (mc *MockedCommands) Run(ctx context.Context, command string, args ...string) (
+// Exec executes a command.
+func (mr *MockedRunner) Exec(ctx context.Context, command string, args ...string) (
 	*bytes.Buffer, error) {
 
 	cmdLine := strings.Join(append([]string{command}, args...), " ")
-	mc.t.Logf("Processing: %s", cmdLine)
-	for cmdPrefix, results := range mc.cmds {
+	mr.t.Logf("Processing: %s", cmdLine)
+	for cmdPrefix, results := range mr.execResults {
 		if !strings.Contains(cmdLine, cmdPrefix) {
 			continue
 		}
-		var result *MockedCommandResult
+		var result *MockedExecResult
 		var found bool
 		for _, result = range results {
 			if result.times != 0 {
@@ -156,7 +197,7 @@ func (mc *MockedCommands) Run(ctx context.Context, command string, args ...strin
 			result.times--
 		}
 		if result.checkFunc != nil {
-			return result.checkFunc(mc, command, args...)
+			return result.checkFunc(mr, command, args...)
 		}
 		return bytes.NewBufferString(result.value), result.err
 	}
@@ -164,11 +205,92 @@ func (mc *MockedCommands) Run(ctx context.Context, command string, args ...strin
 	return nil, fmt.Errorf("Unknown cmd: %s", cmdLine)
 }
 
-// NewMockedCommands creates new mocked command
-func NewMockedCommands(t *testing.T) *MockedCommands {
-	mc := &MockedCommands{
-		t:    t,
-		cmds: make(map[string]MockedCommandsResults),
+// Add add mocked command prefix
+func (mr *MockedRunner) AddScp(local, remote string, returnError error,
+	checkFunc ScpCheckFunc, times ...int) {
+
+	resultKey := local + ":" + remote
+	mockedTimes := -1 // forever
+	if len(times) > 0 {
+		mockedTimes = times[0]
 	}
-	return mc
+	results, ok := mr.scpResults[resultKey]
+	if !ok {
+		results = MockedScpResults{}
+	}
+	if len(results) > 0 && results[0].times > 0 {
+		results = append(results,
+			&MockedScpResult{
+				err:       returnError,
+				checkFunc: checkFunc,
+				times:     mockedTimes,
+			},
+		)
+	} else {
+		results = MockedScpResults{
+			&MockedScpResult{
+				err:       returnError,
+				checkFunc: checkFunc,
+				times:     mockedTimes,
+			},
+		}
+	}
+	mr.scpResults[resultKey] = results
+}
+
+// Mock mocks command for times
+func (mr *MockedRunner) MockScp(local, remote string, returnError error, times ...int) {
+	mr.AddScp(local, remote, returnError, nil, times...)
+}
+
+// MockOnce mocks command once
+func (mr *MockedRunner) MockScpOnce(local, remote string, returnError error) {
+	mr.MockScp(local, remote, returnError, 1)
+}
+
+// CalledScpCount returns called Scp count for specific cmd prefix
+func (mr *MockedRunner) CalledScpCount(local, remote string) int {
+	resultKey := local + ":" + remote
+	if _, ok := mr.scpResults[resultKey]; !ok {
+		return 0
+	}
+	return mr.scpResults[resultKey].Count()
+}
+
+// Scp copy local file or dir to remote host.
+func (mr *MockedRunner) Scp(local, remote string) error {
+	mr.t.Logf("Processing: scp %s to %s", local, remote)
+	resultKey := local + ":" + remote
+	if results, ok := mr.scpResults[resultKey]; ok {
+		var result *MockedScpResult
+		var found bool
+		for _, result = range results {
+			if result.times != 0 {
+				found = true
+				break
+			}
+		}
+		if found {
+			result.Called = true
+			result.Count++
+			if result.times > 0 {
+				result.times--
+			}
+			if result.checkFunc != nil {
+				return result.checkFunc(mr, local, remote)
+			}
+			return result.err
+		}
+	}
+	return fmt.Errorf("Unexpected scp from %s to %s", local, remote)
+}
+
+// NewMockedRunner creates new mocked runner.
+func NewMockedRunner(t *testing.T) *MockedRunner {
+	mr := &MockedRunner{
+		t:           t,
+		execResults: make(map[string]MockedExecResults),
+		scpResults:  make(map[string]MockedScpResults),
+	}
+	return mr
 }

@@ -3,7 +3,10 @@ package external
 import (
 	"bytes"
 	"context"
+	"io"
 	"net"
+	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
@@ -16,7 +19,8 @@ import (
 
 // RunInterface is the interface for running command.
 type RunInterface interface {
-	Run(ctx context.Context, command string, args ...string) (*bytes.Buffer, error)
+	Exec(ctx context.Context, command string, args ...string) (*bytes.Buffer, error)
+	Scp(local, remote string) error
 }
 
 // RemoteRunner implements RunInterface by running command on a remote host.
@@ -26,8 +30,8 @@ type RemoteRunner struct {
 	sftpClient *sftp.Client
 }
 
-// Run is used for running a command.
-func (r *RemoteRunner) Run(ctx context.Context, command string, args ...string) (
+// Exec executes a command.
+func (r *RemoteRunner) Exec(ctx context.Context, command string, args ...string) (
 	*bytes.Buffer, error) {
 
 	session, err := r.newSession()
@@ -79,6 +83,60 @@ func (r *RemoteRunner) Close() {
 	}
 	r.sshClient.Close()
 	r.sshClient = nil
+}
+
+// Scp copy local file or dir to remote host.
+func (r *RemoteRunner) Scp(local, remote string) error {
+	f, err := os.Stat(local)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	if !f.IsDir() {
+		if err := r.copyFileToRemote(local, remote); err != nil {
+			return errors.Trace(err)
+		}
+		return nil
+	}
+	if err := r.copyDirToRemote(local, remote); err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+func (r *RemoteRunner) copyFileToRemote(local, remote string) error {
+	localFile, err := os.Open(local)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	defer localFile.Close()
+	remoteFile, err := r.sftpClient.Create(remote)
+	if err != nil {
+		return err
+	}
+	defer remoteFile.Close()
+	_, err = io.Copy(remoteFile, localFile)
+	return errors.Trace(err)
+}
+
+func (r *RemoteRunner) copyDirToRemote(local, remote string) error {
+	if err := r.sftpClient.Mkdir(remote); err != nil && !os.IsExist(err) {
+		return errors.Trace(err)
+	}
+
+	return filepath.Walk(local, func(localFile string, info os.FileInfo, err error) error {
+		if err != nil {
+			return errors.Trace(err)
+		}
+		relPath, _ := filepath.Rel(local, localFile)
+		remoteFile := filepath.Join(remote, relPath)
+		if info.IsDir() {
+			return r.sftpClient.Mkdir(remoteFile)
+		}
+		if err = r.copyFileToRemote(localFile, remoteFile); err != nil {
+			return errors.Trace(err)
+		}
+		return nil
+	})
 }
 
 // RemoteRunnerCfg defines configurations of a remote runner.
