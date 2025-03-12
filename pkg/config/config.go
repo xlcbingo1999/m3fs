@@ -1,6 +1,12 @@
 package config
 
-import "time"
+import (
+	"path"
+	"time"
+
+	"github.com/open3fs/m3fs/pkg/errors"
+	"github.com/open3fs/m3fs/pkg/utils"
+)
 
 // NetworkType is the type of network definition
 type NetworkType string
@@ -11,6 +17,8 @@ const (
 	NetworkTypeRXE  NetworkType = "RXE"
 )
 
+var networkTypes = utils.NewSet(NetworkTypeRDMA, NetworkTypeRXE)
+
 // DiskType is the type of disk definition
 type DiskType string
 
@@ -19,6 +27,8 @@ const (
 	DiskTypeDirectory DiskType = "directory"
 	DiskTypeNvme      DiskType = "NVMe"
 )
+
+var diskTypes = utils.NewSet(DiskTypeDirectory, DiskTypeNvme)
 
 // Node is the node config definition
 type Node struct {
@@ -82,6 +92,7 @@ type Client struct {
 type Services struct {
 	Fdb        Fdb
 	Clickhouse Clickhouse
+	Monitor    Monitor
 	Mgmtd      Mgmtd
 	Meta       Meta
 	Storage    Storage
@@ -100,4 +111,132 @@ type Config struct {
 	Nodes       []Node
 	Services    Services `yaml:"services"`
 	Registry    Registry
+}
+
+// SetValidate validates the config and set default values if some fields are missing
+func (c *Config) SetValidate(workDir string) error {
+	if c.Name == "" {
+		return errors.New("name is required")
+	}
+	if !networkTypes.Contains(c.NetworkType) {
+		return errors.Errorf("invalid network type: %s", c.NetworkType)
+	}
+	if len(c.Nodes) == 0 {
+		return errors.New("nodes is required")
+	}
+	nodeSet := utils.NewSet[string]()
+	nodeHostSet := utils.NewSet[string]()
+	for i, node := range c.Nodes {
+		if node.Name == "" {
+			return errors.Errorf("nodes[%d].name is required", i)
+		}
+		if !nodeSet.AddIfNotExists(node.Name) {
+			return errors.Errorf("duplicate node name: %s", node.Name)
+		}
+		if node.Host == "" {
+			return errors.Errorf("nodes[%d].host is required", i)
+		}
+		if !nodeHostSet.AddIfNotExists(node.Host) {
+			return errors.Errorf("duplicate node host: %s", node.Host)
+		}
+		if node.Port == 0 {
+			c.Nodes[i].Port = 22
+		}
+	}
+	if err := c.validServiceNodes("fdb", c.Services.Fdb.Nodes, nodeSet, true); err != nil {
+		return errors.Trace(err)
+	}
+	if c.Services.Fdb.Port == 0 {
+		c.Services.Fdb.Port = 4500
+	}
+	if c.Services.Fdb.WorkDir == "" {
+		c.Services.Fdb.WorkDir = path.Join(workDir, "fdb")
+	}
+
+	if err := c.validServiceNodes("clickhouse", c.Services.Clickhouse.Nodes, nodeSet, true); err != nil {
+		return errors.Trace(err)
+	}
+	if c.Services.Clickhouse.WorkDir == "" {
+		c.Services.Clickhouse.WorkDir = path.Join(workDir, "clickhouse")
+	}
+
+	if err := c.validServiceNodes("monitor", c.Services.Monitor.Nodes, nodeSet, true); err != nil {
+		return errors.Trace(err)
+	}
+	if c.Services.Monitor.WorkDir == "" {
+		c.Services.Monitor.WorkDir = path.Join(workDir, "monitor")
+	}
+
+	if err := c.validServiceNodes("mgmtd", c.Services.Mgmtd.Nodes, nodeSet, true); err != nil {
+		return errors.Trace(err)
+	}
+
+	if err := c.validServiceNodes("meta", c.Services.Meta.Nodes, nodeSet, true); err != nil {
+		return errors.Trace(err)
+	}
+
+	if err := c.validServiceNodes("storag", c.Services.Storage.Nodes, nodeSet, true); err != nil {
+		return errors.Trace(err)
+	}
+	if !diskTypes.Contains(c.Services.Storage.DiskType) {
+		return errors.Errorf("invalid disk type of storage service: %s", c.Services.Storage.DiskType)
+	}
+
+	if err := c.validServiceNodes("client", c.Services.Client.Nodes, nodeSet, false); err != nil {
+		return errors.Trace(err)
+	}
+
+	return nil
+}
+
+func (c *Config) validServiceNodes(
+	service string, nodes []string, nodeSet *utils.Set[string], required bool) error {
+
+	if required && len(nodes) == 0 {
+		return errors.Errorf("nodes of %s service is required", service)
+	}
+	serviceNodeSet := utils.NewSet[string]()
+	for _, node := range nodes {
+		if !nodeSet.Contains(node) {
+			return errors.Errorf("node %s of  %s service not exists in node list", node, service)
+		}
+		if !serviceNodeSet.AddIfNotExists(node) {
+			return errors.Errorf("duplicate node %s in %s service", node, service)
+		}
+	}
+	return nil
+}
+
+// NewConfigWithDefaults creates a new config with default values
+func NewConfigWithDefaults() *Config {
+	return &Config{
+		Name:        "3fs",
+		NetworkType: NetworkTypeRDMA,
+		Services: Services{
+			Fdb: Fdb{
+				ContainerName:      "3fs-fdb",
+				Port:               4500,
+				WaitClusterTimeout: 120 * time.Second,
+			},
+			Clickhouse: Clickhouse{
+				ContainerName: "3fs-clickhouse",
+			},
+			Monitor: Monitor{
+				ContainerName: "3fs-monitor",
+			},
+			Mgmtd: Mgmtd{
+				ContainerName: "3fs-mgmtd",
+			},
+			Meta: Meta{
+				ContainerName: "3fs-meta",
+			},
+			Storage: Storage{
+				ContainerName: "3fs-storage",
+				DiskType:      DiskTypeNvme,
+			},
+			Client: Client{
+				ContainerName: "3fs-client",
+			},
+		},
+	}
 }
