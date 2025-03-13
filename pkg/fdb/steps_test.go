@@ -80,8 +80,8 @@ func (s *runContainerStepSuite) SetupTest() {
 }
 
 func (s *runContainerStepSuite) TestRunContainerStep() {
-	s.MockOS.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return("", nil)
-	s.MockOS.On("Exec", "mkdir", []string{"-p", s.logDir}).Return("", nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.logDir}).Return(new(bytes.Buffer), nil)
 	img, err := image.GetImage("", "fdb")
 	s.NoError(err)
 	s.MockDocker.On("Run", &external.RunArgs{
@@ -106,13 +106,13 @@ func (s *runContainerStepSuite) TestRunContainerStep() {
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
-	s.MockOS.AssertExpectations(s.T())
+	s.MockRunner.AssertExpectations(s.T())
 	s.MockDocker.AssertExpectations(s.T())
 }
 
 func (s *runContainerStepSuite) TestRunContainerFailed() {
-	s.MockOS.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return("", nil)
-	s.MockOS.On("Exec", "mkdir", []string{"-p", s.logDir}).Return("", nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.logDir}).Return(new(bytes.Buffer), nil)
 	img, err := image.GetImage("", "fdb")
 	s.NoError(err)
 	s.MockDocker.On("Run", &external.RunArgs{
@@ -137,17 +137,17 @@ func (s *runContainerStepSuite) TestRunContainerFailed() {
 
 	s.Error(s.step.Execute(s.Ctx()), "dummy error")
 
-	s.MockOS.AssertExpectations(s.T())
+	s.MockRunner.AssertExpectations(s.T())
 	s.MockDocker.AssertExpectations(s.T())
 }
 
 func (s *runContainerStepSuite) TestRunDirFailed() {
-	s.MockOS.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return("", nil)
-	s.MockOS.On("Exec", "mkdir", []string{"-p", s.logDir}).Return("", errors.New("dummy error"))
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.logDir}).Return(new(bytes.Buffer), errors.New("dummy error"))
 
 	s.Error(s.step.Execute(s.Ctx()), "dummy error")
 
-	s.MockOS.AssertExpectations(s.T())
+	s.MockRunner.AssertExpectations(s.T())
 }
 
 func TestInitClusterStepSuite(t *testing.T) {
@@ -232,12 +232,12 @@ func (s *rmContainerStepSuite) SetupTest() {
 func (s *rmContainerStepSuite) TestRmContainerStep() {
 	s.MockDocker.On("Rm", s.Cfg.Services.Fdb.ContainerName, true).
 		Return(new(bytes.Buffer), nil)
-	s.MockOS.On("Exec", "rm", []string{"-rf", s.dataDir}).Return("", nil)
-	s.MockOS.On("Exec", "rm", []string{"-rf", s.logDir}).Return("", nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.dataDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.logDir}).Return(new(bytes.Buffer), nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
-	s.MockOS.AssertExpectations(s.T())
+	s.MockRunner.AssertExpectations(s.T())
 	s.MockDocker.AssertExpectations(s.T())
 }
 
@@ -253,10 +253,11 @@ func (s *rmContainerStepSuite) TestRmContainerFailed() {
 func (s *rmContainerStepSuite) TestRmDirFailed() {
 	s.MockDocker.On("Rm", s.Cfg.Services.Fdb.ContainerName, true).
 		Return(new(bytes.Buffer), nil)
-	s.MockOS.On("Exec", "rm", []string{"-rf", s.dataDir}).Return("", errors.New("dummy error"))
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.dataDir}).
+		Return(new(bytes.Buffer), errors.New("dummy error"))
 
 	s.Error(s.step.Execute(s.Ctx()), "dummy error")
 
-	s.MockOS.AssertExpectations(s.T())
+	s.MockRunner.AssertExpectations(s.T())
 	s.MockDocker.AssertExpectations(s.T())
 }

@@ -113,12 +113,13 @@ type Registry struct {
 
 // Config is the 3fs cluster config definition
 type Config struct {
-	Name        string
-	WorkDir     string `yaml:"workDir"`
-	NetworkType NetworkType
-	Nodes       []Node
-	Services    Services `yaml:"services"`
-	Registry    Registry
+	Name             string
+	WorkDir          string `yaml:"workDir"`
+	NetworkType      NetworkType
+	Nodes            []Node
+	Services         Services `yaml:"services"`
+	Registry         Registry
+	CmdMaxExitTimout *time.Duration `yaml:",omitempty"`
 }
 
 // SetValidate validates the config and set default values if some fields are missing

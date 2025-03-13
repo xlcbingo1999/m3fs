@@ -101,15 +101,15 @@ type startContainerStep struct {
 func (s *startContainerStep) Execute(ctx context.Context) error {
 	workDir := s.Runtime.Services.Clickhouse.WorkDir
 	dataDir := path.Join(workDir, "data")
-	if _, err := s.Em.OS.Exec(ctx, "mkdir", "-p", dataDir); err != nil {
+	if _, err := s.Em.Runner.Exec(ctx, "mkdir", "-p", dataDir); err != nil {
 		return errors.Annotatef(err, "mkdir %s", dataDir)
 	}
 	logDir := path.Join(workDir, "log")
-	if _, err := s.Em.OS.Exec(ctx, "mkdir", "-p", logDir); err != nil {
+	if _, err := s.Em.Runner.Exec(ctx, "mkdir", "-p", logDir); err != nil {
 		return errors.Annotatef(err, "mkdir %s", logDir)
 	}
 	configDir := path.Join(workDir, "config.d")
-	if _, err := s.Em.OS.Exec(ctx, "mkdir", "-p", configDir); err != nil {
+	if _, err := s.Em.Runner.Exec(ctx, "mkdir", "-p", configDir); err != nil {
 		return errors.Annotatef(err, "mkdir %s", configDir)
 	}
 	localConfigDir, _ := s.Runtime.Load("clickhouse_temp_config_dir")
@@ -120,7 +120,7 @@ func (s *startContainerStep) Execute(ctx context.Context) error {
 	}
 
 	sqlDir := path.Join(workDir, "sql")
-	if _, err := s.Em.OS.Exec(ctx, "mkdir", "-p", sqlDir); err != nil {
+	if _, err := s.Em.Runner.Exec(ctx, "mkdir", "-p", sqlDir); err != nil {
 		return errors.Annotatef(err, "mkdir %s", sqlDir)
 	}
 	localSQLFile := path.Join(localConfigDir.(string), "3fs-monitor.sql")

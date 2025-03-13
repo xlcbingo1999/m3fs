@@ -44,12 +44,12 @@ type runContainerStep struct {
 
 func (s *runContainerStep) Execute(ctx context.Context) error {
 	dataDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "data")
-	_, err := s.Em.OS.Exec(ctx, "mkdir", "-p", dataDir)
+	_, err := s.Em.Runner.Exec(ctx, "mkdir", "-p", dataDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", dataDir)
 	}
 	logDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "log")
-	_, err = s.Em.OS.Exec(ctx, "mkdir", "-p", logDir)
+	_, err = s.Em.Runner.Exec(ctx, "mkdir", "-p", logDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", logDir)
 	}
@@ -147,13 +147,13 @@ func (s *rmContainerStep) Execute(ctx context.Context) error {
 
 	dataDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "data")
 	s.Logger.Infof("Remove fdb container data dir %s", dataDir)
-	_, err = s.Em.OS.Exec(ctx, "rm", "-rf", dataDir)
+	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", dataDir)
 	if err != nil {
 		return errors.Annotatef(err, "rm %s", dataDir)
 	}
 	logDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "log")
 	s.Logger.Infof("Remove fdb container log dir %s", logDir)
-	_, err = s.Em.OS.Exec(ctx, "rm", "-rf", logDir)
+	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", logDir)
 	if err != nil {
 		return errors.Annotatef(err, "rm %s", logDir)
 	}

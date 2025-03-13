@@ -72,10 +72,10 @@ func (s *startContainerStepSuite) TestStartContainerStep() {
 	logDir := "/root/3fs/clickhouse/log"
 	configDir := "/root/3fs/clickhouse/config.d"
 	sqlDir := "/root/3fs/clickhouse/sql"
-	s.MockOS.On("Exec", "mkdir", []string{"-p", dataDir}).Return("", nil)
-	s.MockOS.On("Exec", "mkdir", []string{"-p", logDir}).Return("", nil)
-	s.MockOS.On("Exec", "mkdir", []string{"-p", configDir}).Return("", nil)
-	s.MockOS.On("Exec", "mkdir", []string{"-p", sqlDir}).Return("", nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", dataDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", logDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", configDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", sqlDir}).Return(new(bytes.Buffer), nil)
 	s.MockRunner.On("Scp", "/tmp/3f-clickhouse.xxx/config.xml",
 		"/root/3fs/clickhouse/config.d/config.xml").Return(nil)
 	s.MockRunner.On("Scp", "/tmp/3f-clickhouse.xxx/3fs-monitor.sql",
@@ -114,6 +114,6 @@ func (s *startContainerStepSuite) TestStartContainerStep() {
 	s.NotNil(s.step)
 	s.NoError(s.step.Execute(s.Ctx()))
 
-	s.MockOS.AssertExpectations(s.T())
+	s.MockRunner.AssertExpectations(s.T())
 	s.MockDocker.AssertExpectations(s.T())
 }

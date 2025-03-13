@@ -95,7 +95,7 @@ func (s *prepareMgmtdConfigStepSuite) mockGenConfig(path, tmpContent string) {
 	if tmpContent != "" {
 		data = []byte(tmpContent)
 	}
-	s.MockedLocal.On("WriteFile", path, data, os.FileMode(0644)).Return(nil)
+	s.MockLocalFS.On("WriteFile", path, data, os.FileMode(0644)).Return(nil)
 }
 
 func (s *prepareMgmtdConfigStepSuite) getGeneratedConfigContent() (string, string, string) {
@@ -381,21 +381,20 @@ inexist_ttl = '10s'`
 }
 
 func (s *prepareMgmtdConfigStepSuite) testPrepareConfig(removeAllErr error) {
-	s.MockedLocal.On("MkdirAll", s.Runtime.Services.Mgmtd.WorkDir).Return(nil)
+	s.MockLocalFS.On("MkdirAll", s.Runtime.Services.Mgmtd.WorkDir).Return(nil)
 	tmpDir := "/root/tmp..."
-	s.MockedLocal.On("MkdirTemp", s.Runtime.Services.Mgmtd.WorkDir, s.node.Name+".*").Return(tmpDir, nil)
-	s.MockedLocal.On("RemoveAll", tmpDir).Return(removeAllErr)
+	s.MockLocalFS.On("MkdirTemp", s.Runtime.Services.Mgmtd.WorkDir, s.node.Name+".*").Return(tmpDir, nil)
+	s.MockLocalFS.On("RemoveAll", tmpDir).Return(removeAllErr)
 	mainAppConfig, mainLauncherConfig, mainConfig := s.getGeneratedConfigContent()
 	s.mockGenConfig(tmpDir+"/mgmtd_main_app.toml", mainAppConfig)
 	s.mockGenConfig(tmpDir+"/mgmtd_main_launcher.toml", mainLauncherConfig)
 	s.mockGenConfig(tmpDir+"/mgmtd_main.toml", mainConfig)
-	s.MockedLocal.On("WriteFile", tmpDir+"/fdb.cluster", []byte(s.fdbContent), os.FileMode(0644)).Return(nil)
+	s.MockLocalFS.On("WriteFile", tmpDir+"/fdb.cluster", []byte(s.fdbContent), os.FileMode(0644)).Return(nil)
 	s.MockRunner.On("Scp", tmpDir, s.Cfg.Services.Mgmtd.WorkDir).Return(nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
-	s.MockedLocal.AssertExpectations(s.T())
-	s.MockOS.AssertExpectations(s.T())
+	s.MockLocalFS.AssertExpectations(s.T())
 	s.MockRunner.AssertExpectations(s.T())
 }
 

@@ -72,16 +72,17 @@ type prepareMgmtdConfigStep struct {
 }
 
 func (s *prepareMgmtdConfigStep) Execute(context.Context) error {
-	err := s.Em.Local.MkdirAll(s.Runtime.Services.Mgmtd.WorkDir)
+	localEm := s.Runtime.LocalEm
+	err := localEm.FS.MkdirAll(s.Runtime.Services.Mgmtd.WorkDir)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	tmpDir, err := s.Em.Local.MkdirTemp(s.Runtime.Services.Mgmtd.WorkDir, s.Node.Name+".*")
+	tmpDir, err := localEm.FS.MkdirTemp(s.Runtime.Services.Mgmtd.WorkDir, s.Node.Name+".*")
 	if err != nil {
 		return errors.Trace(err)
 	}
 	defer func() {
-		if err := s.Em.Local.RemoveAll(tmpDir); err != nil {
+		if err := localEm.FS.RemoveAll(tmpDir); err != nil {
 			s.Logger.Errorf("Failed to remove temporary directory %s: %v", tmpDir, err)
 		}
 	}()
@@ -123,7 +124,7 @@ func (s *prepareMgmtdConfigStep) genConfig(path, tmplName string, tmpl []byte, t
 	}
 	s.Logger.Debugf("Config of %s: %s", tmplName, data.String())
 
-	err = s.Em.Local.WriteFile(path, data.Bytes(), 0644)
+	err = s.Runtime.LocalEm.FS.WriteFile(path, data.Bytes(), 0644)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -182,7 +183,7 @@ func (s *prepareMgmtdConfigStep) genFdbClusterFile(tmpDir string) error {
 
 	clusterFilePath := path.Join(tmpDir, "fdb.cluster")
 	s.Logger.Infof("Generating fdb.cluster to %s", clusterFilePath)
-	if err := s.Em.Local.WriteFile(clusterFilePath, []byte(content), 0644); err != nil {
+	if err := s.Runtime.LocalEm.FS.WriteFile(clusterFilePath, []byte(content), 0644); err != nil {
 		return errors.Trace(err)
 	}
 

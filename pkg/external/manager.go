@@ -68,8 +68,7 @@ type Manager struct {
 	Net    NetInterface
 	Docker DockerInterface
 	Disk   DiskInterface
-	OS     OSInterface
-	Local  LocalInterface
+	FS     FSInterface
 }
 
 // NewManagerFunc type of new manager func.

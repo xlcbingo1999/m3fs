@@ -12,13 +12,17 @@ import (
 type StepSuite struct {
 	base.Suite
 
-	Cfg         *config.Config
-	Runtime     *task.Runtime
-	MockEm      *external.Manager
-	MockRunner  *texternal.MockRunner
-	MockOS      *texternal.MockOS
-	MockDocker  *texternal.MockDocker
-	MockedLocal *texternal.MockLocal
+	Cfg        *config.Config
+	Runtime    *task.Runtime
+	MockEm     *external.Manager
+	MockRunner *texternal.MockRunner
+	MockDocker *texternal.MockDocker
+	// NOTE: external.FSInterface is not implemented for remote runner.
+	// MockFS          *texternal.MockFS
+	MockLocalEm     *external.Manager
+	MockLocalRunner *texternal.MockRunner
+	MockLocalFS     *texternal.MockFS
+	MockLocalDocker *texternal.MockDocker
 }
 
 // SetupTest runs before each test in the step suite.
@@ -55,14 +59,19 @@ registry:
 	s.YamlUnmarshal([]byte(testConfig), s.Cfg)
 
 	s.MockRunner = new(texternal.MockRunner)
-	s.MockOS = new(texternal.MockOS)
 	s.MockDocker = new(texternal.MockDocker)
-	s.MockedLocal = new(texternal.MockLocal)
 	s.MockEm = &external.Manager{
 		Runner: s.MockRunner,
-		OS:     s.MockOS,
 		Docker: s.MockDocker,
-		Local:  s.MockedLocal,
+	}
+
+	s.MockLocalDocker = new(texternal.MockDocker)
+	s.MockLocalRunner = new(texternal.MockRunner)
+	s.MockLocalFS = new(texternal.MockFS)
+	s.MockLocalEm = &external.Manager{
+		Runner: s.MockLocalRunner,
+		FS:     s.MockLocalFS,
+		Docker: s.MockLocalDocker,
 	}
 
 	s.SetupRuntime()
@@ -73,6 +82,7 @@ func (s *StepSuite) SetupRuntime() {
 	s.Runtime = &task.Runtime{
 		Cfg:      s.Cfg,
 		Services: &s.Cfg.Services,
+		LocalEm:  s.MockLocalEm,
 	}
 	s.Runtime.Nodes = make(map[string]config.Node, len(s.Cfg.Nodes))
 	for _, node := range s.Cfg.Nodes {
