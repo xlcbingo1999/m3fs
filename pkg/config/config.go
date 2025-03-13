@@ -71,9 +71,9 @@ type Monitor struct {
 type Mgmtd struct {
 	ContainerName  string `yaml:"containerName"`
 	Nodes          []string
-	WorkDir        string `yaml:"workDir"`
-	RDMAListenPort int    `yaml:"rdmaListenPort"`
-	TCPListenPort  int    `yaml:"tcpListenPort"`
+	WorkDir        string `yaml:"workDir,omitempty"`
+	RDMAListenPort int    `yaml:"rdmaListenPort,omitempty"`
+	TCPListenPort  int    `yaml:"tcpListenPort,omitempty"`
 }
 
 // Meta is the 3fs meta service config definition
@@ -180,6 +180,15 @@ func (c *Config) SetValidate(workDir string) error {
 	if err := c.validServiceNodes("mgmtd", c.Services.Mgmtd.Nodes, nodeSet, true); err != nil {
 		return errors.Trace(err)
 	}
+	if c.Services.Mgmtd.WorkDir == "" {
+		c.Services.Mgmtd.WorkDir = path.Join(workDir, "mgmtd")
+	}
+	if c.Services.Mgmtd.RDMAListenPort == 0 {
+		c.Services.Mgmtd.RDMAListenPort = 8000
+	}
+	if c.Services.Mgmtd.TCPListenPort == 0 {
+		c.Services.Mgmtd.TCPListenPort = 9000
+	}
 
 	if err := c.validServiceNodes("meta", c.Services.Meta.Nodes, nodeSet, true); err != nil {
 		return errors.Trace(err)
@@ -235,7 +244,9 @@ func NewConfigWithDefaults() *Config {
 				ContainerName: "3fs-monitor",
 			},
 			Mgmtd: Mgmtd{
-				ContainerName: "3fs-mgmtd",
+				ContainerName:  "3fs-mgmtd",
+				RDMAListenPort: 8000,
+				TCPListenPort:  9000,
 			},
 			Meta: Meta{
 				ContainerName: "3fs-meta",

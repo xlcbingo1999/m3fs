@@ -34,6 +34,11 @@ func (de *dockerExternal) GetContainer(name string) string {
 type RunArgs struct {
 	Image       string
 	HostNetwork bool
+	Entrypoint  *string
+	Rm          *bool
+	Command     []string
+	Privileged  *bool
+	Ulimits     map[string]string
 	Name        *string
 	Detach      *bool
 	Publish     []*PublishArgs
@@ -69,6 +74,18 @@ func (de *dockerExternal) Run(ctx context.Context, args *RunArgs) (out *bytes.Bu
 	for key, val := range args.Envs {
 		params = append(params, "-e", fmt.Sprintf("%s=%s", key, val))
 	}
+	if args.Entrypoint != nil {
+		params = append(params, "--entrypoint", *args.Entrypoint)
+	}
+	if args.Rm != nil && *args.Rm {
+		params = append(params, "--rm")
+	}
+	if args.Privileged != nil && *args.Privileged {
+		params = append(params, "--privileged")
+	}
+	for key, val := range args.Ulimits {
+		params = append(params, "--ulimit", fmt.Sprintf("%s=%s", key, val))
+	}
 	for _, publishArg := range args.Publish {
 		publishInfo := fmt.Sprintf("%d:%d", publishArg.HostPort, publishArg.ContainerPort)
 		if publishArg.HostAddress != nil {
@@ -83,6 +100,9 @@ func (de *dockerExternal) Run(ctx context.Context, args *RunArgs) (out *bytes.Bu
 		params = append(params, "--volume", fmt.Sprintf("%s:%s", volumeArg.Source, volumeArg.Target))
 	}
 	params = append(params, args.Image)
+	if len(args.Command) > 0 {
+		params = append(params, args.Command...)
+	}
 	out, err = de.run(ctx, "docker", params...)
 	return out, errors.Trace(err)
 }

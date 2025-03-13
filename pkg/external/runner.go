@@ -150,7 +150,11 @@ func (r *RemoteRunner) copyDirToRemote(local, remote string) error {
 		relPath, _ := filepath.Rel(local, localFile)
 		remoteFile := filepath.Join(remote, relPath)
 		if info.IsDir() {
-			return r.sftpClient.Mkdir(remoteFile)
+			err := r.sftpClient.Mkdir(remoteFile)
+			if err != nil && os.IsExist(err) {
+				return errors.Trace(err)
+			}
+			return nil
 		}
 		if err = r.copyFileToRemote(localFile, remoteFile); err != nil {
 			return errors.Trace(err)

@@ -3,6 +3,7 @@ package external_test
 import (
 	"testing"
 
+	"github.com/open3fs/m3fs/pkg/common"
 	"github.com/open3fs/m3fs/pkg/external"
 )
 
@@ -20,9 +21,16 @@ func (s *dockerRunSuite) Test() {
 	hostAddress := "127.0.0.1"
 	protocol := "tcp"
 	args := &external.RunArgs{
-		Image:  "clickhouse/clickhouse-server:latest",
-		Name:   &containerName,
-		Detach: &detach,
+		Image:      "clickhouse/clickhouse-server:latest",
+		Name:       &containerName,
+		Detach:     &detach,
+		Entrypoint: common.Pointer("''"),
+		Rm:         common.Pointer(true),
+		Command:    []string{"ls"},
+		Privileged: common.Pointer(true),
+		Ulimits: map[string]string{
+			"nproc": "65535:65535",
+		},
 		Envs: map[string]string{
 			"A": "B",
 		},
@@ -42,8 +50,9 @@ func (s *dockerRunSuite) Test() {
 			},
 		},
 	}
-	mockCmd := "docker run --name 3fs-clickhouse --detach --network host -e A=B -p 127.0.0.1:9000:9000/tcp " +
-		"--volume /path/to/data:/clickhouse/data clickhouse/clickhouse-server:latest"
+	mockCmd := "docker run --name 3fs-clickhouse --detach --network host -e A=B --entrypoint '' --rm " +
+		"--privileged --ulimit nproc=65535:65535 -p 127.0.0.1:9000:9000/tcp " +
+		"--volume /path/to/data:/clickhouse/data clickhouse/clickhouse-server:latest ls"
 	s.r.MockExec(mockCmd, "", nil)
 	_, err := s.em.Docker.Run(s.Ctx(), args)
 	s.NoError(err)
