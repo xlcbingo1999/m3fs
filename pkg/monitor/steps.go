@@ -5,6 +5,7 @@ import (
 	"embed"
 	"os"
 	"path/filepath"
+	"strconv"
 	"text/template"
 
 	"github.com/open3fs/m3fs/pkg/errors"
@@ -53,10 +54,11 @@ func (s *genMonitorConfigStep) Execute(context.Context) error {
 		}
 	}()
 	err = tmpl.Execute(file, map[string]string{
+		"Db":       s.Runtime.Services.Clickhouse.Db,
 		"Host":     "",
-		"Password": "password",
-		"Port":     "8999",
-		"User":     "default",
+		"Password": s.Runtime.Services.Clickhouse.Password,
+		"Port":     strconv.Itoa(s.Runtime.Services.Clickhouse.TcpPort),
+		"User":     s.Runtime.Services.Clickhouse.User,
 	})
 	if err != nil {
 		return errors.Annotate(err, "write monitor_collector_main.toml")

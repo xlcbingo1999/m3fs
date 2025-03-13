@@ -33,6 +33,10 @@ services:
   clickhouse:
     containerName: 3fs-clickhouse
     workDir: "/root/3fs/clickhouse"
+    db: 3fs
+    user: default
+    password: password
+    tcpPort: 9000
   mgmtd:
     containerName: 3fs-mgmtd
   meta:

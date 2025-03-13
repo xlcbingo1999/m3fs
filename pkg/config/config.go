@@ -54,6 +54,10 @@ type Clickhouse struct {
 	ContainerName string `yaml:"containerName"`
 	Nodes         []string
 	WorkDir       string `yaml:"workDir"`
+	Db            string `yaml:"db"`
+	User          string `yaml:"user"`
+	Password      string `yaml:"password"`
+	TcpPort       int    `yaml:"tcpPort"`
 }
 
 // Monitor is the monitor config definition

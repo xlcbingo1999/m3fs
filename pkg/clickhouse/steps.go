@@ -15,12 +15,15 @@ type startContainerStep struct {
 }
 
 func (s *startContainerStep) Execute(ctx context.Context) error {
-	dataDir := path.Join(s.Runtime.Services.Clickhouse.WorkDir, "data")
+	workDir := s.Runtime.Services.Clickhouse.WorkDir
+	dataDir := path.Join(workDir, "data")
+	logDir := path.Join(workDir, "log")
+	configDir := path.Join(workDir, "config.d")
+	sqlDir := path.Join(workDir, "sql")
 	_, err := s.Em.OS.Exec(ctx, "mkdir", "-p", dataDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", dataDir)
 	}
-	logDir := path.Join(s.Runtime.Services.Clickhouse.WorkDir, "log")
 	_, err = s.Em.OS.Exec(ctx, "mkdir", "-p", logDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", dataDir)
@@ -33,6 +36,11 @@ func (s *startContainerStep) Execute(ctx context.Context) error {
 		Image:       img,
 		Name:        &s.Runtime.Services.Clickhouse.ContainerName,
 		HostNetwork: true,
+		Envs: map[string]string{
+			"CLICKHOUSE_DB":       s.Runtime.Services.Clickhouse.Db,
+			"CLICKHOUSE_USER":     s.Runtime.Services.Clickhouse.User,
+			"CLICKHOUSE_PASSWORD": s.Runtime.Services.Clickhouse.Password,
+		},
 		Volumes: []*external.VolumeArgs{
 			{
 				Source: dataDir,
@@ -41,6 +49,14 @@ func (s *startContainerStep) Execute(ctx context.Context) error {
 			{
 				Source: logDir,
 				Target: "/var/log/clickhouse-server",
+			},
+			{
+				Source: configDir,
+				Target: "/etc/clickhouse-server/config.d",
+			},
+			{
+				Source: sqlDir,
+				Target: "/tmp/sql",
 			},
 		},
 	}

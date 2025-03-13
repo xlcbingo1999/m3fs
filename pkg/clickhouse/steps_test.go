@@ -34,6 +34,8 @@ func (s *startContainerStepSuite) SetupTest() {
 func (s *startContainerStepSuite) TestStartContainerStep() {
 	dataDir := "/root/3fs/clickhouse/data"
 	logDir := "/root/3fs/clickhouse/log"
+	configDir := "/root/3fs/clickhouse/config.d"
+	sqlDir := "/root/3fs/clickhouse/sql"
 	s.MockOS.On("Exec", "mkdir", []string{"-p", dataDir}).Return("", nil)
 	s.MockOS.On("Exec", "mkdir", []string{"-p", logDir}).Return("", nil)
 	img, err := image.GetImage("", "clickhouse")
@@ -42,6 +44,11 @@ func (s *startContainerStepSuite) TestStartContainerStep() {
 		Image:       img,
 		Name:        common.Pointer("3fs-clickhouse"),
 		HostNetwork: true,
+		Envs: map[string]string{
+			"CLICKHOUSE_DB":       "3fs",
+			"CLICKHOUSE_USER":     "default",
+			"CLICKHOUSE_PASSWORD": "password",
+		},
 		Volumes: []*external.VolumeArgs{
 			{
 				Source: dataDir,
@@ -50,6 +57,14 @@ func (s *startContainerStepSuite) TestStartContainerStep() {
 			{
 				Source: logDir,
 				Target: "/var/log/clickhouse-server",
+			},
+			{
+				Source: configDir,
+				Target: "/etc/clickhouse-server/config.d",
+			},
+			{
+				Source: sqlDir,
+				Target: "/tmp/sql",
 			},
 		},
 	}).Return(new(bytes.Buffer), nil)
