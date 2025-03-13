@@ -29,7 +29,7 @@ func (i *Image) GetURL(registry string) (string, error) {
 
 var images = map[string]Image{
 	"3fs":        {Repo: "open3fs/3fs", Tag: "20250307"},
-	"fdb":        {Repo: "foundationdb/foundationdb", Tag: "20250307"},
+	"fdb":        {Repo: "foundationdb/foundationdb", Tag: "7.3.63"},
 	"clickhouse": {Repo: "clickhouse", Tag: "25.1-jammy"},
 }
 

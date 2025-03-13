@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/open3fs/m3fs/pkg/common"
 	"github.com/open3fs/m3fs/pkg/errors"
 	"github.com/open3fs/m3fs/pkg/external"
 	"github.com/open3fs/m3fs/pkg/image"
@@ -25,14 +26,15 @@ func (s *genClusterFileContentStep) Execute(context.Context) error {
 	for i, fdbNode := range fdb.Nodes {
 		for _, node := range s.Runtime.Nodes {
 			if node.Name == fdbNode {
-				nodes[i] = fmt.Sprintf("%s:%s@%s", node.Name, node.Name,
-					net.JoinHostPort(node.Host, strconv.Itoa(fdb.Port)))
+				nodes[i] = net.JoinHostPort(node.Host, strconv.Itoa(fdb.Port))
 			}
 		}
 	}
 
-	s.Logger.Infof("fdb cluster file content: %s", strings.Join(nodes, ","))
-	s.Runtime.Store("fdb_cluster_file_content", strings.Join(nodes, ","))
+	clusterFileContent := fmt.Sprintf("%s:%s@%s",
+		s.Runtime.Cfg.Name, s.Runtime.Cfg.Name, strings.Join(nodes, ","))
+	s.Logger.Infof("fdb cluster file content: %s", clusterFileContent)
+	s.Runtime.Store("fdb_cluster_file_content", clusterFileContent)
 	return nil
 }
 
@@ -61,6 +63,7 @@ func (s *startContainerStep) Execute(ctx context.Context) error {
 		Image:       img,
 		Name:        &s.Runtime.Services.Fdb.ContainerName,
 		HostNetwork: true,
+		Detach:      common.Pointer(true),
 		Envs: map[string]string{
 			"FDB_CLUSTER_FILE_CONTENTS": clusterContent,
 		},
@@ -101,7 +104,7 @@ func (s *initClusterStep) initCluster(ctx context.Context) error {
 	s.Logger.Infof("Initialize fdb cluster")
 	// TODO: initialize fdb cluster with replication and coordinator setting
 	_, err := s.Em.Docker.Exec(ctx, s.Runtime.Services.Fdb.ContainerName,
-		"fdbcli", "--exec", "configure single ssd")
+		"fdbcli", "--exec", "'configure new single ssd'")
 	if err != nil {
 		return errors.Annotate(err, "initialize fdb cluster")
 	}
@@ -116,11 +119,11 @@ func (s *initClusterStep) waitClusterInitilized(ctx context.Context) error {
 
 	for {
 		out, err := s.Em.Docker.Exec(tctx, s.Runtime.Services.Fdb.ContainerName,
-			"fdbcli", "--exec", "status minimal")
+			"fdbcli", "--exec", "'status minimal'")
 		if err != nil {
 			return errors.Annotate(err, "wait fdb cluster initialized")
 		}
-		if out.String() == "The database is available." {
+		if strings.Contains(out.String(), "The database is available.") {
 			break
 		}
 		time.Sleep(time.Second)

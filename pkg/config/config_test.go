@@ -14,6 +14,16 @@ func TestConfigSuite(t *testing.T) {
 
 type configSuite struct {
 	base.Suite
+
+	fdbDir string
+	ckDir  string
+}
+
+func (s *configSuite) SetupSuite() {
+	s.Suite.SetupSuite()
+
+	s.fdbDir = "/fdb"
+	s.ckDir = "/clickhouse"
 }
 
 func (s *configSuite) newConfig() *Config {
@@ -37,8 +47,8 @@ func (s *configSuite) newConfig() *Config {
 
 func (s *configSuite) newConfigWithDefaults() *Config {
 	cfg := s.newConfig()
-	cfg.Services.Fdb.WorkDir = "/fdb"
-	cfg.Services.Clickhouse.WorkDir = "/fdb"
+	cfg.Services.Fdb.WorkDir = s.fdbDir
+	cfg.Services.Clickhouse.WorkDir = s.ckDir
 	cfg.Services.Fdb.Port = 49990
 	cfg.Nodes[0].Port = 123
 
@@ -47,8 +57,8 @@ func (s *configSuite) newConfigWithDefaults() *Config {
 
 func (s *configSuite) TestValidateConfig() {
 	cfg := s.newConfig()
-	cfg.Services.Fdb.WorkDir = "/fdb"
-	cfg.Services.Clickhouse.WorkDir = "/fdb"
+	cfg.Services.Fdb.WorkDir = s.fdbDir
+	cfg.Services.Clickhouse.WorkDir = s.ckDir
 	cfg.Services.Monitor.WorkDir = "/monitor"
 	cfg.Services.Fdb.Port = 49990
 	cfg.Nodes[0].Port = 123
@@ -66,6 +76,7 @@ func (s *configSuite) TestSetConfigDefaults() {
 
 	s.Equal(cfg.Services.Fdb.WorkDir, "/root/fdb")
 	s.Equal(cfg.Services.Clickhouse.WorkDir, "/root/clickhouse")
+	s.Equal(cfg.Services.Monitor.WorkDir, "/root/monitor")
 	s.Equal(cfg.Services.Fdb.Port, 4500)
 	s.Equal(cfg.Nodes[0].Port, 22)
 }

@@ -107,6 +107,7 @@ type Registry struct {
 // Config is the 3fs cluster config definition
 type Config struct {
 	Name        string
+	WorkDir     string `yaml:"workDir"`
 	NetworkType NetworkType
 	Nodes       []Node
 	Services    Services `yaml:"services"`
@@ -118,6 +119,7 @@ func (c *Config) SetValidate(workDir string) error {
 	if c.Name == "" {
 		return errors.New("name is required")
 	}
+	c.WorkDir = workDir
 	if !networkTypes.Contains(c.NetworkType) {
 		return errors.Errorf("invalid network type: %s", c.NetworkType)
 	}
