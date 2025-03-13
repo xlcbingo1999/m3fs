@@ -33,15 +33,16 @@ type genMonitorConfigStep struct {
 }
 
 func (s *genMonitorConfigStep) Execute(context.Context) error {
+	tempDir, err := os.MkdirTemp(os.TempDir(), "3fs-monitor.")
+	if err != nil {
+		return errors.Trace(err)
+	}
+	s.Runtime.Store("monitor_temp_config_dir", tempDir)
+
 	fileName := "monitor_collector_main.toml"
 	tmpl, err := template.New(fileName).Parse(string(MonitorCollectorMainTmpl))
 	if err != nil {
 		return errors.Annotate(err, "parse monitor_collector_main.toml template")
-	}
-
-	tempDir, err := os.MkdirTemp(os.TempDir(), "s3fs-monitor.")
-	if err != nil {
-		return errors.Trace(err)
 	}
 	configPath := filepath.Join(tempDir, fileName)
 	file, err := os.Create(configPath)
@@ -63,7 +64,6 @@ func (s *genMonitorConfigStep) Execute(context.Context) error {
 	if err != nil {
 		return errors.Annotate(err, "write monitor_collector_main.toml")
 	}
-	s.Runtime.Store("tmp_monitor_collector_main_path", configPath)
 
 	return nil
 }

@@ -29,7 +29,7 @@ func (eb *externalBase) runWithAny(
 	ctx context.Context, cmdName string, args ...any) (*bytes.Buffer, error) {
 
 	cmd := NewCommand(cmdName, args...)
-	cmd.runner = eb.em.runner
+	cmd.runner = eb.em.Runner
 	out, err := cmd.Exec(ctx)
 	if err != nil {
 		return out, errors.Annotatef(err, "run cmd [%s]", cmd.String())
@@ -63,7 +63,7 @@ func registerNewExternalFunc(f newExternalFunc) {
 
 // Manager provides a way to use all external interfaces
 type Manager struct {
-	runner RunInterface
+	Runner RunnerInterface
 
 	Net    NetInterface
 	Docker DockerInterface
@@ -75,9 +75,9 @@ type Manager struct {
 type NewManagerFunc func() *Manager
 
 // NewManager create a new external manager
-func NewManager(runner RunInterface) (em *Manager) {
+func NewManager(runner RunnerInterface) (em *Manager) {
 	em = &Manager{
-		runner: runner,
+		Runner: runner,
 	}
 	for _, newExternal := range newExternals {
 		newExternal().init(em)

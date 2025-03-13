@@ -19,8 +19,8 @@ import (
 	"github.com/open3fs/m3fs/pkg/errors"
 )
 
-// RunInterface is the interface for running command.
-type RunInterface interface {
+// RunnerInterface is the interface for running command.
+type RunnerInterface interface {
 	Exec(ctx context.Context, command string, args ...string) (*bytes.Buffer, error)
 	Scp(local, remote string) error
 }
