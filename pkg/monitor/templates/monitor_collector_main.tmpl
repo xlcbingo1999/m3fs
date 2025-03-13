@@ -1,0 +1,9 @@
+[server.monitor_collector.reporter]
+type = 'clickhouse'
+
+[server.monitor_collector.reporter.clickhouse]
+db = '3fs'
+host = '{{ .Host }}'
+passwd = '{{ .Password }}'
+port = '{{ .Port }}'
+user = '{{ .User }}'

@@ -46,6 +46,13 @@ type Clickhouse struct {
 	WorkDir       string `yaml:"workDir"`
 }
 
+// Monitor is the monitor config definition
+type Monitor struct {
+	ContainerName string `yaml:"containerName"`
+	Nodes         []string
+	WorkDir       string `yaml:"workDir"`
+}
+
 // Mgmtd is the 3fs mgmtd service config definition
 type Mgmtd struct {
 	ContainerName string `yaml:"containerName"`
