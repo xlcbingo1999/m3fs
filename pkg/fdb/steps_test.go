@@ -54,22 +54,22 @@ func (s *genClusterFileContentStepSuite) TestGenClusterFileContentStep() {
 	s.Equal("test-cluster:test-cluster@1.1.1.1:4500,1.1.1.2:4500", contentI.(string))
 }
 
-func TestStartContainerStep(t *testing.T) {
-	suiteRun(t, &startContainerStepSuite{})
+func TestRuntContainerStep(t *testing.T) {
+	suiteRun(t, &runContainerStepSuite{})
 }
 
-type startContainerStepSuite struct {
+type runContainerStepSuite struct {
 	ttask.StepSuite
 
-	step    *startContainerStep
+	step    *runContainerStep
 	dataDir string
 	logDir  string
 }
 
-func (s *startContainerStepSuite) SetupTest() {
+func (s *runContainerStepSuite) SetupTest() {
 	s.StepSuite.SetupTest()
 
-	s.step = &startContainerStep{}
+	s.step = &runContainerStep{}
 	s.Cfg.Services.Fdb.WorkDir = "/var/fdb"
 	s.dataDir = "/var/fdb/data"
 	s.logDir = "/var/fdb/log"
@@ -78,7 +78,7 @@ func (s *startContainerStepSuite) SetupTest() {
 	s.Runtime.Store("fdb_cluster_file_content", "xxxx")
 }
 
-func (s *startContainerStepSuite) TestStartContainerStep() {
+func (s *runContainerStepSuite) TestRunContainerStep() {
 	s.MockOS.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return("", nil)
 	s.MockOS.On("Exec", "mkdir", []string{"-p", s.logDir}).Return("", nil)
 	img, err := image.GetImage("", "fdb")
@@ -109,7 +109,7 @@ func (s *startContainerStepSuite) TestStartContainerStep() {
 	s.MockDocker.AssertExpectations(s.T())
 }
 
-func (s *startContainerStepSuite) TestStartContainerFailed() {
+func (s *runContainerStepSuite) TestRunContainerFailed() {
 	s.MockOS.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return("", nil)
 	s.MockOS.On("Exec", "mkdir", []string{"-p", s.logDir}).Return("", nil)
 	img, err := image.GetImage("", "fdb")
@@ -140,7 +140,7 @@ func (s *startContainerStepSuite) TestStartContainerFailed() {
 	s.MockDocker.AssertExpectations(s.T())
 }
 
-func (s *startContainerStepSuite) TestCreateDirFailed() {
+func (s *runContainerStepSuite) TestRunDirFailed() {
 	s.MockOS.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return("", nil)
 	s.MockOS.On("Exec", "mkdir", []string{"-p", s.logDir}).Return("", errors.New("dummy error"))
 
@@ -163,7 +163,6 @@ func (s *initClusterStepSuite) SetupTest() {
 	s.StepSuite.SetupTest()
 
 	s.step = &initClusterStep{}
-	s.Cfg.Services.Fdb.WorkDir = "/var/fdb"
 	s.SetupRuntime()
 	s.step.Init(s.Runtime, s.MockedEm)
 	s.Runtime.Store("fdb_cluster_file_content", "xxxx")
@@ -202,5 +201,61 @@ func (s *initClusterStepSuite) TestWaitClusterInitializedFailed() {
 
 	s.Error(s.step.Execute(s.Ctx()), "dummy error")
 
+	s.MockDocker.AssertExpectations(s.T())
+}
+
+func TestRmContainerStep(t *testing.T) {
+	suiteRun(t, &rmContainerStepSuite{})
+}
+
+type rmContainerStepSuite struct {
+	ttask.StepSuite
+
+	step    *rmContainerStep
+	dataDir string
+	logDir  string
+}
+
+func (s *rmContainerStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.step = &rmContainerStep{}
+	s.Cfg.Services.Fdb.WorkDir = "/var/fdb"
+	s.dataDir = "/var/fdb/data"
+	s.logDir = "/var/fdb/log"
+	s.SetupRuntime()
+	s.step.Init(s.Runtime, s.MockedEm)
+	s.Runtime.Store("fdb_cluster_file_content", "xxxx")
+}
+
+func (s *rmContainerStepSuite) TestRmContainerStep() {
+	s.MockDocker.On("Rm", s.Cfg.Services.Fdb.ContainerName, true).
+		Return(new(bytes.Buffer), nil)
+	s.MockOS.On("Exec", "rm", []string{"-rf", s.dataDir}).Return("", nil)
+	s.MockOS.On("Exec", "rm", []string{"-rf", s.logDir}).Return("", nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	s.MockOS.AssertExpectations(s.T())
+	s.MockDocker.AssertExpectations(s.T())
+}
+
+func (s *rmContainerStepSuite) TestRmContainerFailed() {
+	s.MockDocker.On("Rm", s.Cfg.Services.Fdb.ContainerName, true).
+		Return(new(bytes.Buffer), errors.New("dummy error"))
+
+	s.Error(s.step.Execute(s.Ctx()), "dummy error")
+
+	s.MockDocker.AssertExpectations(s.T())
+}
+
+func (s *rmContainerStepSuite) TestRmDirFailed() {
+	s.MockDocker.On("Rm", s.Cfg.Services.Fdb.ContainerName, true).
+		Return(new(bytes.Buffer), nil)
+	s.MockOS.On("Exec", "rm", []string{"-rf", s.dataDir}).Return("", errors.New("dummy error"))
+
+	s.Error(s.step.Execute(s.Ctx()), "dummy error")
+
+	s.MockOS.AssertExpectations(s.T())
 	s.MockDocker.AssertExpectations(s.T())
 }

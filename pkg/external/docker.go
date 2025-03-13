@@ -12,6 +12,7 @@ import (
 type DockerInterface interface {
 	GetContainer(string) string
 	Run(ctx context.Context, args *RunArgs) (out *bytes.Buffer, err error)
+	Rm(ctx context.Context, name string, force bool) (out *bytes.Buffer, err error)
 	Exec(context.Context, string, string, ...string) (*bytes.Buffer, error)
 }
 
@@ -83,6 +84,16 @@ func (de *dockerExternal) Run(ctx context.Context, args *RunArgs) (out *bytes.Bu
 	}
 	params = append(params, args.Image)
 	out, err = de.run(ctx, "docker", params...)
+	return out, errors.Trace(err)
+}
+
+func (de *dockerExternal) Rm(ctx context.Context, name string, force bool) (out *bytes.Buffer, err error) {
+	args := []string{"rm"}
+	if force {
+		args = append(args, "--force")
+	}
+	args = append(args, name)
+	out, err = de.run(ctx, "docker", args...)
 	return out, errors.Trace(err)
 }
 
