@@ -38,11 +38,11 @@ func (s *genClusterFileContentStep) Execute(context.Context) error {
 	return nil
 }
 
-type startContainerStep struct {
+type runContainerStep struct {
 	task.BaseStep
 }
 
-func (s *startContainerStep) Execute(ctx context.Context) error {
+func (s *runContainerStep) Execute(ctx context.Context) error {
 	dataDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "data")
 	_, err := s.Em.OS.Exec(ctx, "mkdir", "-p", dataDir)
 	if err != nil {
@@ -130,5 +130,34 @@ func (s *initClusterStep) waitClusterInitilized(ctx context.Context) error {
 	}
 
 	s.Logger.Infof("Fdb cluster initialized")
+	return nil
+}
+
+type rmContainerStep struct {
+	task.BaseStep
+}
+
+func (s *rmContainerStep) Execute(ctx context.Context) error {
+	containerName := s.Runtime.Services.Fdb.ContainerName
+	s.Logger.Infof("Remove fdb container %s", containerName)
+	_, err := s.Em.Docker.Rm(ctx, containerName, true)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	dataDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "data")
+	s.Logger.Infof("Remove fdb container data dir %s", dataDir)
+	_, err = s.Em.OS.Exec(ctx, "rm", "-rf", dataDir)
+	if err != nil {
+		return errors.Annotatef(err, "rm %s", dataDir)
+	}
+	logDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "log")
+	s.Logger.Infof("Remove fdb container log dir %s", logDir)
+	_, err = s.Em.OS.Exec(ctx, "rm", "-rf", logDir)
+	if err != nil {
+		return errors.Annotatef(err, "rm %s", logDir)
+	}
+
+	s.Logger.Infof("FDB container %s successfully removed", containerName)
 	return nil
 }

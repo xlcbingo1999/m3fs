@@ -49,6 +49,21 @@ func (s *dockerRunSuite) Test() {
 	s.NoError(err)
 }
 
+func TestDockerRmSuite(t *testing.T) {
+	suiteRun(t, new(dockerRmSuite))
+}
+
+type dockerRmSuite struct {
+	Suite
+}
+
+func (s *dockerRmSuite) Test() {
+	mockCmd := "docker rm --force test"
+	s.r.MockExec(mockCmd, "", nil)
+	_, err := s.em.Docker.Rm(s.Ctx(), "test", true)
+	s.NoError(err)
+}
+
 func TestDockerExecSuite(t *testing.T) {
 	suiteRun(t, new(dockerExecSuite))
 }
