@@ -29,7 +29,7 @@ type Runner struct {
 
 // Init initializes all tasks.
 func (r *Runner) Init() {
-	runtime := &Runtime{}
+	runtime := &Runtime{Cfg: r.cfg, WorkDir: r.cfg.WorkDir}
 	runtime.Nodes = make(map[string]config.Node, len(r.cfg.Nodes))
 	for _, node := range r.cfg.Nodes {
 		runtime.Nodes[node.Name] = node

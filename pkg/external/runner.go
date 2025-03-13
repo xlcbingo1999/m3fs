@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -46,9 +47,12 @@ func (r *RemoteRunner) Exec(ctx context.Context, command string, args ...string)
 		}
 	}()
 
+	cmdStr := strings.Join(append([]string{command}, args...), " ")
+	r.log.Debugf("Run command: %s", cmdStr)
 	var output bytes.Buffer
 	session.Stdout = &output
-	if err := session.Run("ls -l /tmp"); err != nil {
+	if err := session.Run(cmdStr); err != nil {
+		r.log.Debugf("Run command failed, output: %s", output.String())
 		return nil, errors.Trace(err)
 	}
 	return &output, nil

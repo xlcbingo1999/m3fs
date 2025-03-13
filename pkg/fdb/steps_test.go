@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	"github.com/open3fs/m3fs/pkg/common"
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
 	"github.com/open3fs/m3fs/pkg/external"
@@ -50,7 +51,7 @@ func (s *genClusterFileContentStepSuite) TestGenClusterFileContentStep() {
 
 	contentI, ok := s.Runtime.Load("fdb_cluster_file_content")
 	s.True(ok)
-	s.Equal("node1:node1@1.1.1.1:4500,node2:node2@1.1.1.2:4500", contentI.(string))
+	s.Equal("test-cluster:test-cluster@1.1.1.1:4500,1.1.1.2:4500", contentI.(string))
 }
 
 func TestStartContainerStep(t *testing.T) {
@@ -86,6 +87,7 @@ func (s *startContainerStepSuite) TestStartContainerStep() {
 		Image:       img,
 		Name:        &s.Cfg.Services.Fdb.ContainerName,
 		HostNetwork: true,
+		Detach:      common.Pointer(true),
 		Envs: map[string]string{
 			"FDB_CLUSTER_FILE_CONTENTS": "xxxx",
 		},
@@ -116,6 +118,7 @@ func (s *startContainerStepSuite) TestStartContainerFailed() {
 		Image:       img,
 		Name:        &s.Cfg.Services.Fdb.ContainerName,
 		HostNetwork: true,
+		Detach:      common.Pointer(true),
 		Envs: map[string]string{
 			"FDB_CLUSTER_FILE_CONTENTS": "xxxx",
 		},
@@ -168,10 +171,10 @@ func (s *initClusterStepSuite) SetupTest() {
 
 func (s *initClusterStepSuite) TestInit() {
 	s.MockDocker.On("Exec", s.Runtime.Services.Fdb.ContainerName,
-		"fdbcli", []string{"--exec", "configure single ssd"}).
+		"fdbcli", []string{"--exec", "'configure new single ssd'"}).
 		Return(new(bytes.Buffer), nil)
 	s.MockDocker.On("Exec", s.Runtime.Services.Fdb.ContainerName,
-		"fdbcli", []string{"--exec", "status minimal"}).
+		"fdbcli", []string{"--exec", "'status minimal'"}).
 		Return(bytes.NewBufferString("The database is available."), nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
@@ -181,7 +184,7 @@ func (s *initClusterStepSuite) TestInit() {
 
 func (s *initClusterStepSuite) TestInitClusterFailed() {
 	s.MockDocker.On("Exec", s.Runtime.Services.Fdb.ContainerName,
-		"fdbcli", []string{"--exec", "configure single ssd"}).
+		"fdbcli", []string{"--exec", "'configure new single ssd'"}).
 		Return(nil, errors.New("dummy error"))
 
 	s.Error(s.step.Execute(s.Ctx()), "dummy error")
@@ -191,10 +194,10 @@ func (s *initClusterStepSuite) TestInitClusterFailed() {
 
 func (s *initClusterStepSuite) TestWaitClusterInitializedFailed() {
 	s.MockDocker.On("Exec", s.Runtime.Services.Fdb.ContainerName,
-		"fdbcli", []string{"--exec", "configure single ssd"}).
+		"fdbcli", []string{"--exec", "'configure new single ssd'"}).
 		Return(new(bytes.Buffer), nil)
 	s.MockDocker.On("Exec", s.Runtime.Services.Fdb.ContainerName,
-		"fdbcli", []string{"--exec", "status minimal"}).
+		"fdbcli", []string{"--exec", "'status minimal'"}).
 		Return(nil, errors.New("dummy error"))
 
 	s.Error(s.step.Execute(s.Ctx()), "dummy error")
