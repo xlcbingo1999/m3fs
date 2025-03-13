@@ -20,7 +20,11 @@ func (t *CreateClickhouseClusterTask) Init(r *task.Runtime) {
 	}
 	t.SetSteps([]task.StepConfig{
 		{
-			Nodes:   nodes,
+			Nodes:   []config.Node{nodes[0]},
+			NewStep: func() task.Step { return new(genClickhouseConfigStep) },
+		},
+		{
+			Nodes:   []config.Node{nodes[0]},
 			NewStep: func() task.Step { return new(startContainerStep) },
 		},
 	})

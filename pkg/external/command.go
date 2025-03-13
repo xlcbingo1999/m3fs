@@ -9,7 +9,7 @@ import (
 
 // Command define command
 type Command struct {
-	runner RunInterface
+	runner RunnerInterface
 
 	cmdName string
 	args    []string

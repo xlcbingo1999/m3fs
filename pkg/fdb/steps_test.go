@@ -43,7 +43,7 @@ func (s *genClusterFileContentStepSuite) SetupTest() {
 	s.Cfg.Services.Fdb.Nodes = []string{"node1", "node2"}
 	s.Cfg.Services.Fdb.Port = 4500
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockedEm)
+	s.step.Init(s.Runtime, s.MockEm)
 }
 
 func (s *genClusterFileContentStepSuite) TestGenClusterFileContentStep() {
@@ -74,7 +74,7 @@ func (s *runContainerStepSuite) SetupTest() {
 	s.dataDir = "/var/fdb/data"
 	s.logDir = "/var/fdb/log"
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockedEm)
+	s.step.Init(s.Runtime, s.MockEm)
 	s.Runtime.Store("fdb_cluster_file_content", "xxxx")
 }
 
@@ -164,7 +164,7 @@ func (s *initClusterStepSuite) SetupTest() {
 
 	s.step = &initClusterStep{}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockedEm)
+	s.step.Init(s.Runtime, s.MockEm)
 	s.Runtime.Store("fdb_cluster_file_content", "xxxx")
 }
 
@@ -224,7 +224,7 @@ func (s *rmContainerStepSuite) SetupTest() {
 	s.dataDir = "/var/fdb/data"
 	s.logDir = "/var/fdb/log"
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockedEm)
+	s.step.Init(s.Runtime, s.MockEm)
 	s.Runtime.Store("fdb_cluster_file_content", "xxxx")
 }
 

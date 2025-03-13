@@ -14,7 +14,8 @@ type StepSuite struct {
 
 	Cfg        *config.Config
 	Runtime    *task.Runtime
-	MockedEm   *external.Manager
+	MockEm     *external.Manager
+	MockRunner *texternal.MockRunner
 	MockOS     *texternal.MockOS
 	MockDocker *texternal.MockDocker
 }
@@ -33,6 +34,10 @@ services:
   clickhouse:
     containerName: 3fs-clickhouse
     workDir: "/root/3fs/clickhouse"
+    db: 3fs
+    user: default
+    password: password
+    tcpPort: 9000
   mgmtd:
     containerName: 3fs-mgmtd
   meta:
@@ -48,9 +53,11 @@ registry:
 	s.Cfg = new(config.Config)
 	s.YamlUnmarshal([]byte(testConfig), s.Cfg)
 
+	s.MockRunner = new(texternal.MockRunner)
 	s.MockOS = new(texternal.MockOS)
 	s.MockDocker = new(texternal.MockDocker)
-	s.MockedEm = &external.Manager{
+	s.MockEm = &external.Manager{
+		Runner: s.MockRunner,
 		OS:     s.MockOS,
 		Docker: s.MockDocker,
 	}

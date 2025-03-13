@@ -75,6 +75,10 @@ services:
     nodes: 
       - meta
     workDir: "/root/3fs/clickhouse"
+    db: 3fs
+    user: default
+    password: password
+    tcpPort: 9000
   monitor:
     containerName: 3fs-monitor
     nodes:
