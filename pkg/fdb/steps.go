@@ -34,7 +34,7 @@ func (s *genClusterFileContentStep) Execute(context.Context) error {
 	clusterFileContent := fmt.Sprintf("%s:%s@%s",
 		s.Runtime.Cfg.Name, s.Runtime.Cfg.Name, strings.Join(nodes, ","))
 	s.Logger.Infof("fdb cluster file content: %s", clusterFileContent)
-	s.Runtime.Store("fdb_cluster_file_content", clusterFileContent)
+	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, clusterFileContent)
 	return nil
 }
 
@@ -57,7 +57,7 @@ func (s *runContainerStep) Execute(ctx context.Context) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	clusterContentI, _ := s.Runtime.Load("fdb_cluster_file_content")
+	clusterContentI, _ := s.Runtime.Load(task.RuntimeFdbClusterFileContentKey)
 	clusterContent := clusterContentI.(string)
 	args := &external.RunArgs{
 		Image:       img,

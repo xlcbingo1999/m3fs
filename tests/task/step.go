@@ -12,12 +12,13 @@ import (
 type StepSuite struct {
 	base.Suite
 
-	Cfg        *config.Config
-	Runtime    *task.Runtime
-	MockEm     *external.Manager
-	MockRunner *texternal.MockRunner
-	MockOS     *texternal.MockOS
-	MockDocker *texternal.MockDocker
+	Cfg         *config.Config
+	Runtime     *task.Runtime
+	MockEm      *external.Manager
+	MockRunner  *texternal.MockRunner
+	MockOS      *texternal.MockOS
+	MockDocker  *texternal.MockDocker
+	MockedLocal *texternal.MockLocal
 }
 
 // SetupTest runs before each test in the step suite.
@@ -56,10 +57,12 @@ registry:
 	s.MockRunner = new(texternal.MockRunner)
 	s.MockOS = new(texternal.MockOS)
 	s.MockDocker = new(texternal.MockDocker)
+	s.MockedLocal = new(texternal.MockLocal)
 	s.MockEm = &external.Manager{
 		Runner: s.MockRunner,
 		OS:     s.MockOS,
 		Docker: s.MockDocker,
+		Local:  s.MockedLocal,
 	}
 
 	s.SetupRuntime()

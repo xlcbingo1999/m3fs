@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/open3fs/m3fs/pkg/common"
+	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/external"
 	"github.com/open3fs/m3fs/pkg/image"
 	ttask "github.com/open3fs/m3fs/tests/task"
@@ -31,7 +32,7 @@ func (s *genClickhouseConfigStepSuite) SetupTest() {
 
 	s.step = &genClickhouseConfigStep{}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm)
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
 }
 
 func (s *genClickhouseConfigStepSuite) Test() {
@@ -62,7 +63,7 @@ func (s *startContainerStepSuite) SetupTest() {
 	s.StepSuite.SetupTest()
 
 	s.step = &startContainerStep{}
-	s.step.Init(s.Runtime, s.MockEm)
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
 	s.Runtime.Store("clickhouse_temp_config_dir", "/tmp/3f-clickhouse.xxx")
 }
 

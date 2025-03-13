@@ -10,6 +10,11 @@ import (
 	"github.com/open3fs/m3fs/pkg/errors"
 )
 
+// defines keys of runtime cache.
+const (
+	RuntimeFdbClusterFileContentKey = "fdb_cluster_file_content"
+)
+
 // Runtime contains task run info
 type Runtime struct {
 	sync.Map

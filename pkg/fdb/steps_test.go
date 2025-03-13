@@ -11,6 +11,7 @@ import (
 	"github.com/open3fs/m3fs/pkg/errors"
 	"github.com/open3fs/m3fs/pkg/external"
 	"github.com/open3fs/m3fs/pkg/image"
+	"github.com/open3fs/m3fs/pkg/task"
 	ttask "github.com/open3fs/m3fs/tests/task"
 )
 
@@ -43,13 +44,13 @@ func (s *genClusterFileContentStepSuite) SetupTest() {
 	s.Cfg.Services.Fdb.Nodes = []string{"node1", "node2"}
 	s.Cfg.Services.Fdb.Port = 4500
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm)
+	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0])
 }
 
 func (s *genClusterFileContentStepSuite) TestGenClusterFileContentStep() {
 	s.NoError(s.step.Execute(s.Ctx()))
 
-	contentI, ok := s.Runtime.Load("fdb_cluster_file_content")
+	contentI, ok := s.Runtime.Load(task.RuntimeFdbClusterFileContentKey)
 	s.True(ok)
 	s.Equal("test-cluster:test-cluster@1.1.1.1:4500,1.1.1.2:4500", contentI.(string))
 }
@@ -74,8 +75,8 @@ func (s *runContainerStepSuite) SetupTest() {
 	s.dataDir = "/var/fdb/data"
 	s.logDir = "/var/fdb/log"
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm)
-	s.Runtime.Store("fdb_cluster_file_content", "xxxx")
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, "xxxx")
 }
 
 func (s *runContainerStepSuite) TestRunContainerStep() {
@@ -164,8 +165,8 @@ func (s *initClusterStepSuite) SetupTest() {
 
 	s.step = &initClusterStep{}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm)
-	s.Runtime.Store("fdb_cluster_file_content", "xxxx")
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, "xxxx")
 }
 
 func (s *initClusterStepSuite) TestInit() {
@@ -224,8 +225,8 @@ func (s *rmContainerStepSuite) SetupTest() {
 	s.dataDir = "/var/fdb/data"
 	s.logDir = "/var/fdb/log"
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm)
-	s.Runtime.Store("fdb_cluster_file_content", "xxxx")
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, "xxxx")
 }
 
 func (s *rmContainerStepSuite) TestRmContainerStep() {

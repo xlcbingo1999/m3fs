@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	"github.com/open3fs/m3fs/pkg/config"
 	ttask "github.com/open3fs/m3fs/tests/task"
 )
 
@@ -27,7 +28,7 @@ func (s *genMonitorConfigStepSuite) SetupTest() {
 
 	s.step = &genMonitorConfigStep{}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm)
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
 }
 
 func (s *genMonitorConfigStepSuite) Test() {

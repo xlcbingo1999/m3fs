@@ -24,8 +24,9 @@ func (t *CreateFdbClusterTask) Init(r *task.Runtime) {
 			NewStep: func() task.Step { return new(genClusterFileContentStep) },
 		},
 		{
-			Nodes:   nodes,
-			NewStep: func() task.Step { return new(runContainerStep) },
+			Nodes:    nodes,
+			Parallel: true,
+			NewStep:  func() task.Step { return new(runContainerStep) },
 		},
 		{
 			Nodes:   []config.Node{nodes[0]},
