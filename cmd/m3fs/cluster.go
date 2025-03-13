@@ -7,6 +7,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 
+	"github.com/open3fs/m3fs/pkg/clickhouse"
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
 	"github.com/open3fs/m3fs/pkg/fdb"
@@ -89,7 +90,10 @@ func createCluster(ctx *cli.Context) error {
 		return errors.Trace(err)
 	}
 
-	runner := task.NewRunner(cfg, new(fdb.CreateFdbClusterTask))
+	runner := task.NewRunner(cfg,
+		new(fdb.CreateFdbClusterTask),
+		new(clickhouse.CreateClickhouseClusterTask),
+	)
 	runner.Init()
 	if err = runner.Run(ctx.Context); err != nil {
 		return errors.Annotate(err, "create cluster")
@@ -104,7 +108,10 @@ func deleteCluster(ctx *cli.Context) error {
 		return errors.Trace(err)
 	}
 
-	runner := task.NewRunner(cfg, new(fdb.DeleteFdbClusterTask))
+	runner := task.NewRunner(cfg,
+		new(clickhouse.DeleteClickhouseClusterTask),
+		new(fdb.DeleteFdbClusterTask),
+	)
 	runner.Init()
 	if err = runner.Run(ctx.Context); err != nil {
 		return errors.Annotate(err, "delete cluster")
