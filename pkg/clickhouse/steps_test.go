@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/open3fs/m3fs/pkg/common"
+	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/external"
 	"github.com/open3fs/m3fs/pkg/image"
 	ttask "github.com/open3fs/m3fs/tests/task"
@@ -31,7 +32,7 @@ func (s *genClickhouseConfigStepSuite) SetupTest() {
 
 	s.step = &genClickhouseConfigStep{}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm)
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
 }
 
 func (s *genClickhouseConfigStepSuite) Test() {
@@ -62,7 +63,7 @@ func (s *startContainerStepSuite) SetupTest() {
 	s.StepSuite.SetupTest()
 
 	s.step = &startContainerStep{}
-	s.step.Init(s.Runtime, s.MockEm)
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
 	s.Runtime.Store("clickhouse_temp_config_dir", "/tmp/3f-clickhouse.xxx")
 }
 
@@ -71,10 +72,10 @@ func (s *startContainerStepSuite) TestStartContainerStep() {
 	logDir := "/root/3fs/clickhouse/log"
 	configDir := "/root/3fs/clickhouse/config.d"
 	sqlDir := "/root/3fs/clickhouse/sql"
-	s.MockOS.On("Exec", "mkdir", []string{"-p", dataDir}).Return("", nil)
-	s.MockOS.On("Exec", "mkdir", []string{"-p", logDir}).Return("", nil)
-	s.MockOS.On("Exec", "mkdir", []string{"-p", configDir}).Return("", nil)
-	s.MockOS.On("Exec", "mkdir", []string{"-p", sqlDir}).Return("", nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", dataDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", logDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", configDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", sqlDir}).Return(new(bytes.Buffer), nil)
 	s.MockRunner.On("Scp", "/tmp/3f-clickhouse.xxx/config.xml",
 		"/root/3fs/clickhouse/config.d/config.xml").Return(nil)
 	s.MockRunner.On("Scp", "/tmp/3f-clickhouse.xxx/3fs-monitor.sql",
@@ -113,6 +114,6 @@ func (s *startContainerStepSuite) TestStartContainerStep() {
 	s.NotNil(s.step)
 	s.NoError(s.step.Execute(s.Ctx()))
 
-	s.MockOS.AssertExpectations(s.T())
+	s.MockRunner.AssertExpectations(s.T())
 	s.MockDocker.AssertExpectations(s.T())
 }

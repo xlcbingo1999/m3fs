@@ -69,8 +69,11 @@ type Monitor struct {
 
 // Mgmtd is the 3fs mgmtd service config definition
 type Mgmtd struct {
-	ContainerName string `yaml:"containerName"`
-	Nodes         []string
+	ContainerName  string `yaml:"containerName"`
+	Nodes          []string
+	WorkDir        string `yaml:"workDir"`
+	RDMAListenPort int    `yaml:"rdmaListenPort"`
+	TCPListenPort  int    `yaml:"tcpListenPort"`
 }
 
 // Meta is the 3fs meta service config definition
@@ -110,12 +113,13 @@ type Registry struct {
 
 // Config is the 3fs cluster config definition
 type Config struct {
-	Name        string
-	WorkDir     string `yaml:"workDir"`
-	NetworkType NetworkType
-	Nodes       []Node
-	Services    Services `yaml:"services"`
-	Registry    Registry
+	Name             string
+	WorkDir          string `yaml:"workDir"`
+	NetworkType      NetworkType
+	Nodes            []Node
+	Services         Services `yaml:"services"`
+	Registry         Registry
+	CmdMaxExitTimout *time.Duration `yaml:",omitempty"`
 }
 
 // SetValidate validates the config and set default values if some fields are missing

@@ -16,13 +16,13 @@ type externalInterface interface {
 }
 
 type externalBase struct {
-	em  *Manager
-	log *log.Logger
+	em     *Manager
+	logger *log.Logger
 }
 
 func (eb *externalBase) init(em *Manager) {
 	eb.em = em
-	eb.log = log.StandardLogger()
+	eb.logger = log.StandardLogger()
 }
 
 func (eb *externalBase) runWithAny(
@@ -68,7 +68,7 @@ type Manager struct {
 	Net    NetInterface
 	Docker DockerInterface
 	Disk   DiskInterface
-	OS     OSInterface
+	FS     FSInterface
 }
 
 // NewManagerFunc type of new manager func.

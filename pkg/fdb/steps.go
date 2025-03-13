@@ -34,7 +34,7 @@ func (s *genClusterFileContentStep) Execute(context.Context) error {
 	clusterFileContent := fmt.Sprintf("%s:%s@%s",
 		s.Runtime.Cfg.Name, s.Runtime.Cfg.Name, strings.Join(nodes, ","))
 	s.Logger.Infof("fdb cluster file content: %s", clusterFileContent)
-	s.Runtime.Store("fdb_cluster_file_content", clusterFileContent)
+	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, clusterFileContent)
 	return nil
 }
 
@@ -44,12 +44,12 @@ type runContainerStep struct {
 
 func (s *runContainerStep) Execute(ctx context.Context) error {
 	dataDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "data")
-	_, err := s.Em.OS.Exec(ctx, "mkdir", "-p", dataDir)
+	_, err := s.Em.Runner.Exec(ctx, "mkdir", "-p", dataDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", dataDir)
 	}
 	logDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "log")
-	_, err = s.Em.OS.Exec(ctx, "mkdir", "-p", logDir)
+	_, err = s.Em.Runner.Exec(ctx, "mkdir", "-p", logDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", logDir)
 	}
@@ -57,7 +57,7 @@ func (s *runContainerStep) Execute(ctx context.Context) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	clusterContentI, _ := s.Runtime.Load("fdb_cluster_file_content")
+	clusterContentI, _ := s.Runtime.Load(task.RuntimeFdbClusterFileContentKey)
 	clusterContent := clusterContentI.(string)
 	args := &external.RunArgs{
 		Image:       img,
@@ -147,13 +147,13 @@ func (s *rmContainerStep) Execute(ctx context.Context) error {
 
 	dataDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "data")
 	s.Logger.Infof("Remove fdb container data dir %s", dataDir)
-	_, err = s.Em.OS.Exec(ctx, "rm", "-rf", dataDir)
+	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", dataDir)
 	if err != nil {
 		return errors.Annotatef(err, "rm %s", dataDir)
 	}
 	logDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "log")
 	s.Logger.Infof("Remove fdb container log dir %s", logDir)
-	_, err = s.Em.OS.Exec(ctx, "rm", "-rf", logDir)
+	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", logDir)
 	if err != nil {
 		return errors.Annotatef(err, "rm %s", logDir)
 	}

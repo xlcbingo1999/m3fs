@@ -8,6 +8,12 @@ import (
 
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
+	"github.com/open3fs/m3fs/pkg/external"
+)
+
+// defines keys of runtime cache.
+const (
+	RuntimeFdbClusterFileContentKey = "fdb_cluster_file_content"
 )
 
 // Runtime contains task run info
@@ -16,8 +22,8 @@ type Runtime struct {
 	Cfg      *config.Config
 	Nodes    map[string]config.Node
 	Services *config.Services
-	// TODO: set work dir
-	WorkDir string
+	WorkDir  string
+	LocalEm  *external.Manager
 }
 
 // Runner is a task runner.
@@ -35,6 +41,11 @@ func (r *Runner) Init() {
 		runtime.Nodes[node.Name] = node
 	}
 	runtime.Services = &r.cfg.Services
+	em := external.NewManager(external.NewLocalRunner(&external.LocalRunnerCfg{
+		Logger:         logrus.StandardLogger(),
+		MaxExitTimeout: r.cfg.CmdMaxExitTimout,
+	}))
+	runtime.LocalEm = em
 
 	for _, task := range r.tasks {
 		task.Init(runtime)

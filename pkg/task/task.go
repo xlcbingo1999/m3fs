@@ -59,7 +59,7 @@ func (t *BaseTask) ExecuteSteps(ctx context.Context) error {
 			if err != nil {
 				return errors.Trace(err)
 			}
-			step.Init(t.Runtime, em)
+			step.Init(t.Runtime, em, node)
 			if err := step.Execute(ctx); err != nil {
 				return err
 			}
@@ -71,7 +71,7 @@ func (t *BaseTask) ExecuteSteps(ctx context.Context) error {
 // Step is an interface that defines the methods that all steps must implement,
 // in order to be executed by the task.
 type Step interface {
-	Init(r *Runtime, em *external.Manager)
+	Init(r *Runtime, em *external.Manager, node config.Node)
 	Execute(context.Context) error
 }
 
@@ -86,14 +86,16 @@ type StepConfig struct {
 type BaseStep struct {
 	Em      *external.Manager
 	Runtime *Runtime
+	Node    config.Node
 	Logger  *logrus.Logger
 }
 
 // Init initializes the step with the external manager and the configuration.
-func (s *BaseStep) Init(r *Runtime, em *external.Manager) {
+func (s *BaseStep) Init(r *Runtime, em *external.Manager, node config.Node) {
 	s.Em = em
 	s.Runtime = r
 	s.Logger = logrus.StandardLogger()
+	s.Node = node
 }
 
 // Execute is a no-op implementation of the Execute method, which should be
