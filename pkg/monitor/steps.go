@@ -58,7 +58,7 @@ func (s *genMonitorConfigStep) Execute(context.Context) error {
 		"Db":       s.Runtime.Services.Clickhouse.Db,
 		"Host":     "",
 		"Password": s.Runtime.Services.Clickhouse.Password,
-		"Port":     strconv.Itoa(s.Runtime.Services.Clickhouse.TcpPort),
+		"Port":     strconv.Itoa(s.Runtime.Services.Clickhouse.TCPPort),
 		"User":     s.Runtime.Services.Clickhouse.User,
 	})
 	if err != nil {

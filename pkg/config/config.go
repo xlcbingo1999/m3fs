@@ -57,7 +57,7 @@ type Clickhouse struct {
 	Db            string `yaml:"db"`
 	User          string `yaml:"user"`
 	Password      string `yaml:"password"`
-	TcpPort       int    `yaml:"tcpPort"`
+	TCPPort       int    `yaml:"tcpPort"`
 }
 
 // Monitor is the monitor config definition

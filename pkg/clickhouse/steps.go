@@ -22,8 +22,8 @@ var (
 	// ClickhouseConfigTmpl is the template content of config.xml
 	ClickhouseConfigTmpl []byte
 
-	// ClickhouseSqlTmpl is the template content of 3fs-monitor.sql
-	ClickhouseSqlTmpl []byte
+	// ClickhouseSQLTmpl is the template content of 3fs-monitor.sql
+	ClickhouseSQLTmpl []byte
 )
 
 func init() {
@@ -32,7 +32,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	ClickhouseSqlTmpl, err = templatesFs.ReadFile("templates/sql.tmpl")
+	ClickhouseSQLTmpl, err = templatesFs.ReadFile("templates/sql.tmpl")
 	if err != nil {
 		panic(err)
 	}
@@ -64,7 +64,7 @@ func (s *genClickhouseConfigStep) Execute(context.Context) error {
 		return errors.Annotate(err, "parse config.xml template")
 	}
 	err = configTmpl.Execute(configFile, map[string]string{
-		"Port": strconv.Itoa(s.Runtime.Services.Clickhouse.TcpPort),
+		"Port": strconv.Itoa(s.Runtime.Services.Clickhouse.TCPPort),
 	})
 	if err != nil {
 		return errors.Annotate(err, "write config.xml")
@@ -80,7 +80,7 @@ func (s *genClickhouseConfigStep) Execute(context.Context) error {
 			s.Logger.Warnf("Failed to close file %+v", err)
 		}
 	}()
-	sqlTmpl, err := template.New(sqlFileName).Parse(string(ClickhouseSqlTmpl))
+	sqlTmpl, err := template.New(sqlFileName).Parse(string(ClickhouseSQLTmpl))
 	if err != nil {
 		return errors.Annotate(err, "parse 3fs-monitor.sql template")
 	}
@@ -123,9 +123,9 @@ func (s *startContainerStep) Execute(ctx context.Context) error {
 	if _, err := s.Em.OS.Exec(ctx, "mkdir", "-p", sqlDir); err != nil {
 		return errors.Annotatef(err, "mkdir %s", sqlDir)
 	}
-	localSqlFile := path.Join(localConfigDir.(string), "3fs-monitor.sql")
-	remoteSqlFile := path.Join(sqlDir, "3fs-monitor.sql")
-	if err := s.Em.Runner.Scp(localSqlFile, remoteSqlFile); err != nil {
+	localSQLFile := path.Join(localConfigDir.(string), "3fs-monitor.sql")
+	remoteSQLFile := path.Join(sqlDir, "3fs-monitor.sql")
+	if err := s.Em.Runner.Scp(localSQLFile, remoteSQLFile); err != nil {
 		return errors.Annotatef(err, "scp 3fs-monitor.sql")
 	}
 
