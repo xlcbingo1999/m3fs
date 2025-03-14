@@ -3,6 +3,7 @@ package clickhouse
 import (
 	"context"
 	"embed"
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -141,7 +142,6 @@ func (s *startContainerStep) Execute(ctx context.Context) error {
 		HostNetwork: true,
 		Detach:      common.Pointer(true),
 		Envs: map[string]string{
-			"CLICKHOUSE_DB":       s.Runtime.Services.Clickhouse.Db,
 			"CLICKHOUSE_USER":     s.Runtime.Services.Clickhouse.User,
 			"CLICKHOUSE_PASSWORD": s.Runtime.Services.Clickhouse.Password,
 		},
@@ -189,7 +189,8 @@ func (s *initClusterStep) Execute(ctx context.Context) error {
 func (s *initClusterStep) initCluster(ctx context.Context) error {
 	s.Logger.Infof("Initializing clickhouse cluster")
 	_, err := s.Em.Docker.Exec(ctx, s.Runtime.Services.Clickhouse.ContainerName,
-		"bash", "-c", `"clickhouse-client -n < /tmp/sql/3fs-monitor.sql"`)
+		"bash", "-c", fmt.Sprintf(`"clickhouse-client --port %d -n < /tmp/sql/3fs-monitor.sql"`,
+			s.Runtime.Services.Clickhouse.TCPPort))
 	if err != nil {
 		return errors.Annotate(err, "initialize fdb cluster")
 	}

@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -88,7 +89,6 @@ func (s *startContainerStepSuite) TestStartContainerStep() {
 		HostNetwork: true,
 		Detach:      common.Pointer(true),
 		Envs: map[string]string{
-			"CLICKHOUSE_DB":       "3fs",
 			"CLICKHOUSE_USER":     "default",
 			"CLICKHOUSE_PASSWORD": "password",
 		},
@@ -138,7 +138,11 @@ func (s *initClusterStepSuite) SetupTest() {
 
 func (s *initClusterStepSuite) TestInit() {
 	s.MockDocker.On("Exec", s.Runtime.Services.Clickhouse.ContainerName,
-		"bash", []string{"-c", `"clickhouse-client -n < /tmp/sql/3fs-monitor.sql"`}).
+		"bash", []string{
+			"-c",
+			fmt.Sprintf(`"clickhouse-client --port %d -n < /tmp/sql/3fs-monitor.sql"`,
+				s.Runtime.Services.Clickhouse.TCPPort),
+		}).
 		Return(new(bytes.Buffer), nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))

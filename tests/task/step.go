@@ -1,6 +1,10 @@
 package task
 
 import (
+	"bytes"
+
+	"gopkg.in/yaml.v3"
+
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/external"
 	"github.com/open3fs/m3fs/pkg/task"
@@ -29,34 +33,22 @@ type StepSuite struct {
 func (s *StepSuite) SetupTest() {
 	s.Suite.SetupTest()
 
+	s.Cfg = config.NewConfigWithDefaults()
 	testConfig := `name: test-cluster
-networktype: RDMA
+workDir: "/root/3fs"
 services:
   fdb:
-    containerName: 3fs-fdb
     workDir: "/root/3fs/fdb"
-    port: 4500
   clickhouse:
-    containerName: 3fs-clickhouse
     workDir: "/root/3fs/clickhouse"
     db: 3fs
     user: default
     password: password
     tcpPort: 9000
-  mgmtd:
-    containerName: 3fs-mgmtd
-  meta:
-    containerName: 3fs-meta
-  storage:
-    containerName: 3fs-storage
-    disktype: "NVMe"
-  client:
-    containerName: 3fs-fuseclient
-registry:
-  customRegistry: ""
-  `
-	s.Cfg = new(config.Config)
-	s.YamlUnmarshal([]byte(testConfig), s.Cfg)
+  monitor:
+    workDir: "/root/3fs/monitor"
+`
+	s.NoError(yaml.NewDecoder(bytes.NewBufferString(testConfig)).Decode(s.Cfg))
 
 	s.MockRunner = new(texternal.MockRunner)
 	s.MockDocker = new(texternal.MockDocker)

@@ -13,6 +13,7 @@ import (
 	"github.com/open3fs/m3fs/pkg/fdb"
 	"github.com/open3fs/m3fs/pkg/meta"
 	"github.com/open3fs/m3fs/pkg/mgmtd"
+	"github.com/open3fs/m3fs/pkg/monitor"
 	"github.com/open3fs/m3fs/pkg/task"
 )
 
@@ -95,6 +96,7 @@ func createCluster(ctx *cli.Context) error {
 	runner := task.NewRunner(cfg,
 		new(fdb.CreateFdbClusterTask),
 		new(clickhouse.CreateClickhouseClusterTask),
+		new(monitor.CreateMonitorTask),
 		new(mgmtd.CreateMgmtdServiceTask),
 		new(meta.CreateMetaServiceTask),
 	)
@@ -113,10 +115,11 @@ func deleteCluster(ctx *cli.Context) error {
 	}
 
 	runner := task.NewRunner(cfg,
+		new(meta.DeleteMetaServiceTask),
+		new(mgmtd.DeleteMgmtdServiceTask),
+		new(monitor.DeleteMonitorTask),
 		new(clickhouse.DeleteClickhouseClusterTask),
 		new(fdb.DeleteFdbClusterTask),
-		new(mgmtd.DeleteMgmtdServiceTask),
-		new(meta.DeleteMetaServiceTask),
 	)
 	runner.Init()
 	if err = runner.Run(ctx.Context); err != nil {
