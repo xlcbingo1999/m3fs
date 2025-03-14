@@ -4,7 +4,11 @@ import (
 	"bytes"
 	"context"
 	"embed"
+	"fmt"
+	"net"
 	"path"
+	"strconv"
+	"strings"
 	"text/template"
 
 	"github.com/open3fs/m3fs/pkg/common"
@@ -106,6 +110,15 @@ func (s *initClusterStep) Execute(ctx context.Context) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+
+	address := make([]string, len(s.Runtime.Services.Mgmtd.Nodes))
+	port := strconv.Itoa(s.Runtime.Services.Mgmtd.RDMAListenPort)
+	for i, nodeName := range s.Runtime.Services.Mgmtd.Nodes {
+		node := s.Runtime.Nodes[nodeName]
+		address[i] = fmt.Sprintf(`"RDMA://%s"`, net.JoinHostPort(node.Host, port))
+	}
+	s.Runtime.Store(task.RuntimeMgmtdServerAddresseslKey,
+		fmt.Sprintf(`[%s]`, strings.Join(address, ",")))
 
 	s.Logger.Infof("Cluster initialization success")
 	return nil

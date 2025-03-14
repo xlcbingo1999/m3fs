@@ -54,6 +54,9 @@ func (s *configSuite) newConfigWithDefaults() *Config {
 	cfg.Services.Mgmtd.WorkDir = "/root/mgmtd"
 	cfg.Services.Mgmtd.RDMAListenPort = 8033
 	cfg.Services.Mgmtd.TCPListenPort = 9003
+	cfg.Services.Meta.WorkDir = "/rootxx/meta"
+	cfg.Services.Meta.RDMAListenPort = 8011
+	cfg.Services.Meta.TCPListenPort = 9301
 
 	return cfg
 }
@@ -67,6 +70,9 @@ func (s *configSuite) TestValidateConfig() {
 	cfg.Services.Mgmtd.WorkDir = "/root/mgmtd"
 	cfg.Services.Mgmtd.RDMAListenPort = 8000
 	cfg.Services.Mgmtd.TCPListenPort = 9000
+	cfg.Services.Meta.WorkDir = "/root/meta"
+	cfg.Services.Meta.RDMAListenPort = 8001
+	cfg.Services.Meta.TCPListenPort = 9001
 	cfg.Nodes[0].Port = 123
 	cfgExp := *cfg
 
