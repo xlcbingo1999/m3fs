@@ -3,7 +3,11 @@ package mgmtd
 import (
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/task"
+	"github.com/open3fs/m3fs/pkg/task/steps"
 )
+
+// ServiceName is the name of the mgmtd service.
+const ServiceName = "mgmtd_main"
 
 // CreateMgmtdServiceTask is a task for creating 3fs mgmtd services.
 type CreateMgmtdServiceTask struct {
@@ -21,12 +25,24 @@ func (t *CreateMgmtdServiceTask) Init(r *task.Runtime) {
 	t.SetSteps([]task.StepConfig{
 		{
 			Nodes:   []config.Node{nodes[0]},
-			NewStep: func() task.Step { return new(genNodeIDStep) },
+			NewStep: steps.NewGen3FSNodeIDStepFunc(ServiceName, 1, r.Cfg.Services.Mgmtd.Nodes),
+		},
+		{
+			Nodes:   []config.Node{nodes[0]},
+			NewStep: func() task.Step { return new(genAdminCliConfigStep) },
 		},
 		{
 			Nodes:    nodes,
 			Parallel: true,
-			NewStep:  func() task.Step { return new(prepareMgmtdConfigStep) },
+			NewStep: steps.NewPrepare3FSConfigStepFunc(&steps.Prepare3FSConfigStepSetup{
+				Service:              ServiceName,
+				ServiceWorkDir:       r.Services.Mgmtd.WorkDir,
+				MainAppTomlTmpl:      MgmtdMainAppTomlTmpl,
+				MainLauncherTomlTmpl: MgmtdMainLauncherTomlTmpl,
+				MainTomlTmpl:         MgmtdMainTomlTmpl,
+				RDMAListenPort:       r.Services.Mgmtd.RDMAListenPort,
+				TCPListenPort:        r.Services.Mgmtd.TCPListenPort,
+			}),
 		},
 		{
 			Nodes:   []config.Node{nodes[0]},
@@ -35,7 +51,10 @@ func (t *CreateMgmtdServiceTask) Init(r *task.Runtime) {
 		{
 			Nodes:    nodes,
 			Parallel: true,
-			NewStep:  func() task.Step { return new(runContainerStep) },
+			NewStep: steps.NewRun3FSContainerStepFunc("3fs",
+				r.Services.Mgmtd.ContainerName,
+				ServiceName,
+				r.Services.Mgmtd.WorkDir),
 		},
 	})
 }
@@ -55,8 +74,11 @@ func (t *DeleteMgmtdServiceTask) Init(r *task.Runtime) {
 	}
 	t.SetSteps([]task.StepConfig{
 		{
-			Nodes:   nodes,
-			NewStep: func() task.Step { return new(rmContainerStep) },
+			Nodes: nodes,
+			NewStep: steps.NewRm3FSContainerStepFunc(
+				r.Services.Mgmtd.ContainerName,
+				ServiceName,
+				r.Services.Mgmtd.WorkDir),
 		},
 	})
 }

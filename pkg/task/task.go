@@ -3,10 +3,11 @@ package task
 import (
 	"context"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
 	"github.com/open3fs/m3fs/pkg/external"
-	"github.com/sirupsen/logrus"
 )
 
 // Interface defines the interface that all tasks must implement.

@@ -14,6 +14,8 @@ import (
 // defines keys of runtime cache.
 const (
 	RuntimeFdbClusterFileContentKey = "fdb_cluster_file_content"
+	RuntimeMgmtdServerAddresseslKey = "mgmtd_server_addresses"
+	RuntimeAdminCliTomlKey          = "admin_cli_toml"
 )
 
 // Runtime contains task run info
