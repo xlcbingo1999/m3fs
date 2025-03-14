@@ -14,6 +14,7 @@ import (
 	"github.com/open3fs/m3fs/pkg/meta"
 	"github.com/open3fs/m3fs/pkg/mgmtd"
 	"github.com/open3fs/m3fs/pkg/monitor"
+	"github.com/open3fs/m3fs/pkg/storage"
 	"github.com/open3fs/m3fs/pkg/task"
 )
 
@@ -99,6 +100,7 @@ func createCluster(ctx *cli.Context) error {
 		new(monitor.CreateMonitorTask),
 		new(mgmtd.CreateMgmtdServiceTask),
 		new(meta.CreateMetaServiceTask),
+		new(storage.CreateStorageServiceTask),
 	)
 	runner.Init()
 	if err = runner.Run(ctx.Context); err != nil {
@@ -115,6 +117,7 @@ func deleteCluster(ctx *cli.Context) error {
 	}
 
 	runner := task.NewRunner(cfg,
+		new(storage.DeleteStorageServiceTask),
 		new(meta.DeleteMetaServiceTask),
 		new(mgmtd.DeleteMgmtdServiceTask),
 		new(monitor.DeleteMonitorTask),

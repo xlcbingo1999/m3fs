@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 	"text/template"
 
 	"github.com/open3fs/m3fs/pkg/common"
@@ -69,6 +70,7 @@ type prepare3FSConfigStep struct {
 	mainTomlTmpl         []byte
 	rdmaListenPort       int
 	tcpListenPort        int
+	extraMainTomlData    map[string]any
 }
 
 func (s *prepare3FSConfigStep) Execute(ctx context.Context) error {
@@ -86,6 +88,11 @@ func (s *prepare3FSConfigStep) Execute(ctx context.Context) error {
 			s.Logger.Errorf("Failed to remove temporary directory %s: %v", tmpDir, err)
 		}
 	}()
+
+	s.Logger.Infof("Create %s config dir %s", s.service, s.serviceWorkDir)
+	if _, err = s.Em.Runner.Exec(ctx, "mkdir", "-p", s.serviceWorkDir); err != nil {
+		return errors.Trace(err)
+	}
 
 	if err = s.genConfigs(tmpDir); err != nil {
 		return errors.Trace(err)
@@ -176,6 +183,9 @@ func (s *prepare3FSConfigStep) genConfigs(tmpDir string) error {
 		"TCPListenPort":        s.tcpListenPort,
 		"MgmtdServerAddresses": mgmtdServerAddresses,
 	}
+	for k, v := range s.extraMainTomlData {
+		mainTmplData[k] = v
+	}
 	s.Logger.Debugf("Template data of %s.toml.tmpl: %v", s.service, mainTmplData)
 	if err := s.genConfig(mainToml, fmt.Sprintf("%s.toml", s.service),
 		s.mainTomlTmpl, mainTmplData); err != nil {
@@ -215,6 +225,7 @@ type Prepare3FSConfigStepSetup struct {
 	MainTomlTmpl         []byte
 	RDMAListenPort       int
 	TCPListenPort        int
+	ExtraMainTomlData    map[string]any
 }
 
 // NewPrepare3FSConfigStepFunc is prepare 3fs config step factory func.
@@ -228,6 +239,7 @@ func NewPrepare3FSConfigStepFunc(setup *Prepare3FSConfigStepSetup) func() task.S
 			mainTomlTmpl:         setup.MainTomlTmpl,
 			rdmaListenPort:       setup.RDMAListenPort,
 			tcpListenPort:        setup.TCPListenPort,
+			extraMainTomlData:    setup.ExtraMainTomlData,
 		}
 	}
 }
@@ -239,6 +251,7 @@ type run3FSContainerStep struct {
 	containerName  string
 	service        string
 	serviceWorkDir string
+	extraVolumes   []*external.VolumeArgs
 }
 
 func (s *run3FSContainerStep) Execute(ctx context.Context) error {
@@ -266,12 +279,9 @@ func (s *run3FSContainerStep) Execute(ctx context.Context) error {
 				Source: getConfigDir(s.serviceWorkDir),
 				Target: "/opt/3fs/etc/",
 			},
-			{
-				Source: "/dev",
-				Target: "/dev",
-			},
 		},
 	}
+	args.Volumes = append(args.Volumes, s.extraVolumes...)
 	_, err = s.Em.Docker.Run(ctx, args)
 	if err != nil {
 		return errors.Trace(err)
@@ -281,14 +291,24 @@ func (s *run3FSContainerStep) Execute(ctx context.Context) error {
 	return nil
 }
 
+// Run3FSContainerStepSetup is a struct that holds the configuration of the run3FSContainerStep.
+type Run3FSContainerStepSetup struct {
+	ImgName       string
+	ContainerName string
+	Service       string
+	WorkDir       string
+	ExtraVolumes  []*external.VolumeArgs
+}
+
 // NewRun3FSContainerStepFunc is run3FSContainer factory func.
-func NewRun3FSContainerStepFunc(imgName, containerName, service, workDir string) func() task.Step {
+func NewRun3FSContainerStepFunc(setup *Run3FSContainerStepSetup) func() task.Step {
 	return func() task.Step {
 		return &run3FSContainerStep{
-			imgName:        imgName,
-			containerName:  containerName,
-			service:        service,
-			serviceWorkDir: workDir,
+			imgName:        setup.ImgName,
+			containerName:  setup.ContainerName,
+			service:        setup.Service,
+			serviceWorkDir: setup.WorkDir,
+			extraVolumes:   setup.ExtraVolumes,
 		}
 	}
 }
@@ -403,6 +423,80 @@ func NewUpload3FSMainConfigStepFunc(
 			service:        service,
 			serviceWorkDir: serviceWorkDir,
 			serviceType:    serviceType,
+		}
+	}
+}
+
+type remoteRunScriptStep struct {
+	task.BaseStep
+
+	workDir    string
+	scriptName string
+	script     []byte
+	scriptArgs []string
+}
+
+func (s *remoteRunScriptStep) Execute(ctx context.Context) error {
+	s.Logger.Infof("Start to run script %s on node", s.scriptName)
+	localEm := s.Runtime.LocalEm
+	err := localEm.FS.MkdirAll(s.workDir)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	tmpDir, err := localEm.FS.MkdirTemp(s.workDir, s.Node.Name+".*")
+	if err != nil {
+		return errors.Trace(err)
+	}
+	defer func() {
+		if err := localEm.FS.RemoveAll(tmpDir); err != nil {
+			s.Logger.Errorf("Failed to remove temporary directory %s: %v", tmpDir, err)
+		}
+	}()
+
+	tmpScriptPath := path.Join(tmpDir, "/tmp_script.sh")
+	if err = localEm.FS.WriteFile(tmpScriptPath, s.script, os.FileMode(0775)); err != nil {
+		return errors.Trace(err)
+	}
+
+	if _, err = s.Em.Runner.Exec(ctx, "mkdir", "-p", s.workDir); err != nil {
+		return errors.Trace(err)
+	}
+	out, err := s.Em.Runner.Exec(ctx, "mktemp", "-p", s.workDir)
+	if err != nil {
+		return errors.Annotate(err, "mktemp")
+	}
+	remoteFile := strings.TrimSpace(out)
+	defer func() {
+		if _, err := s.Em.Runner.Exec(ctx, "rm", "-f", remoteFile); err != nil {
+			s.Logger.Errorf("Failed to remove remote file %s: %v", remoteFile, err)
+		}
+	}()
+	if err = s.Em.Runner.Scp(tmpScriptPath, remoteFile); err != nil {
+		return errors.Trace(err)
+	}
+
+	s.Logger.Infof("Run %s with %v", s.scriptName, s.scriptArgs)
+	out, err = s.Em.Runner.Exec(ctx, "bash", append([]string{remoteFile}, s.scriptArgs...)...)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	s.Logger.Debugf("Run %s output: %s", s.scriptName, out)
+
+	s.Logger.Infof("Run %s success", s.scriptName)
+
+	return nil
+}
+
+// NewRemoteRunScriptStepFunc is remoteRunScriptStep factory func.
+func NewRemoteRunScriptStepFunc(
+	workDir, scriptName string, script []byte, scriptArgs []string) func() task.Step {
+
+	return func() task.Step {
+		return &remoteRunScriptStep{
+			workDir:    workDir,
+			scriptName: scriptName,
+			script:     script,
+			scriptArgs: scriptArgs,
 		}
 	}
 }

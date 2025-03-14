@@ -123,7 +123,7 @@ func (r *RemoteRunner) copyFileToRemote(local, remote string) error {
 	}()
 	remoteFile, err := r.sftpClient.Create(remote)
 	if err != nil {
-		return err
+		return errors.Trace(err)
 	}
 	defer func() {
 		if err := remoteFile.Close(); err != nil {

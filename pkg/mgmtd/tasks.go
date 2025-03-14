@@ -51,10 +51,13 @@ func (t *CreateMgmtdServiceTask) Init(r *task.Runtime) {
 		{
 			Nodes:    nodes,
 			Parallel: true,
-			NewStep: steps.NewRun3FSContainerStepFunc("3fs",
-				r.Services.Mgmtd.ContainerName,
-				ServiceName,
-				r.Services.Mgmtd.WorkDir),
+			NewStep: steps.NewRun3FSContainerStepFunc(
+				&steps.Run3FSContainerStepSetup{
+					ImgName:       "3fs",
+					ContainerName: r.Services.Mgmtd.ContainerName,
+					Service:       ServiceName,
+					WorkDir:       r.Services.Mgmtd.WorkDir,
+				}),
 		},
 	})
 }
