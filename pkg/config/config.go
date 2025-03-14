@@ -78,8 +78,11 @@ type Mgmtd struct {
 
 // Meta is the 3fs meta service config definition
 type Meta struct {
-	ContainerName string `yaml:"containerName"`
-	Nodes         []string
+	ContainerName  string `yaml:"containerName"`
+	Nodes          []string
+	WorkDir        string `yaml:"workDir,omitempty"`
+	RDMAListenPort int    `yaml:"rdmaListenPort,omitempty"`
+	TCPListenPort  int    `yaml:"tcpListenPort,omitempty"`
 }
 
 // Storage is the 3fs storage config definition
@@ -192,6 +195,15 @@ func (c *Config) SetValidate(workDir string) error {
 
 	if err := c.validServiceNodes("meta", c.Services.Meta.Nodes, nodeSet, true); err != nil {
 		return errors.Trace(err)
+	}
+	if c.Services.Meta.WorkDir == "" {
+		c.Services.Meta.WorkDir = path.Join(workDir, "meta")
+	}
+	if c.Services.Meta.RDMAListenPort == 0 {
+		c.Services.Meta.RDMAListenPort = 8001
+	}
+	if c.Services.Meta.TCPListenPort == 0 {
+		c.Services.Meta.TCPListenPort = 9001
 	}
 
 	if err := c.validServiceNodes("storag", c.Services.Storage.Nodes, nodeSet, true); err != nil {

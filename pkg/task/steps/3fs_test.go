@@ -274,3 +274,64 @@ func (s *rm3FSContainerStepSuite) TestRmDirFailed() {
 	s.MockRunner.AssertExpectations(s.T())
 	s.MockDocker.AssertExpectations(s.T())
 }
+
+func TestUpload3FSMainConfigStepSuite(t *testing.T) {
+	suiteRun(t, &upload3FSMainConfigStepSuite{})
+}
+
+type upload3FSMainConfigStepSuite struct {
+	ttask.StepSuite
+
+	step      *upload3FSMainConfigStep
+	configDir string
+}
+
+func (s *upload3FSMainConfigStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.Cfg.Services.Meta.WorkDir = "/var/meta"
+	s.configDir = "/var/meta/config.d"
+	s.SetupRuntime()
+	s.step = NewUpload3FSMainConfigStepFunc("3fs", s.Cfg.Services.Meta.ContainerName,
+		"meta_main", s.Cfg.Services.Meta.WorkDir, "META")().(*upload3FSMainConfigStep)
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.Runtime.Store(task.RuntimeMgmtdServerAddresseslKey, `["RDMA://1.1.1.1:8000"]`)
+}
+
+func (s *upload3FSMainConfigStepSuite) TestRunContainer() {
+	img, err := image.GetImage(s.Runtime.Cfg.Registry.CustomRegistry, "3fs")
+	s.NoError(err)
+	s.MockDocker.On("Run", &external.RunArgs{
+		Image:       img,
+		Name:        &s.Cfg.Services.Meta.ContainerName,
+		HostNetwork: true,
+		Privileged:  common.Pointer(true),
+		Entrypoint:  common.Pointer("''"),
+		Rm:          common.Pointer(true),
+		Ulimits: map[string]string{
+			"nofile": "1048576:1048576",
+		},
+		Command: []string{
+			"/opt/3fs/bin/admin_cli",
+			"-cfg", "/opt/3fs/etc/admin_cli.toml",
+			"--config.mgmtd_client.mgmtd_server_addresses",
+			`'["RDMA://1.1.1.1:8000"]'`,
+			"'set-config --type META --file /opt/3fs/etc/meta_main.toml'",
+		},
+		Volumes: []*external.VolumeArgs{
+			{
+				Source: s.configDir,
+				Target: "/opt/3fs/etc/",
+			},
+			{
+				Source: "/dev",
+				Target: "/dev",
+			},
+		},
+	}).Return(new(bytes.Buffer), nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	s.MockRunner.AssertExpectations(s.T())
+	s.MockDocker.AssertExpectations(s.T())
+}

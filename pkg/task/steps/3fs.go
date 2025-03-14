@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"html/template"
 	"os"
 	"path"
+	"text/template"
 
 	"github.com/open3fs/m3fs/pkg/common"
 	"github.com/open3fs/m3fs/pkg/config"
@@ -119,6 +119,7 @@ func (s *prepare3FSConfigStep) genConfig(path, tmplName string, tmpl []byte, tmp
 		return errors.Annotatef(err, "parse template of %s", path)
 	}
 	data := new(bytes.Buffer)
+
 	err = t.Execute(data, tmplData)
 	if err != nil {
 		return errors.Annotatef(err, "execute template of %s", path)
@@ -325,6 +326,83 @@ func NewRm3FSContainerStepFunc(containerName, service, serviceWorkDir string) fu
 			containerName:  containerName,
 			service:        service,
 			serviceWorkDir: serviceWorkDir,
+		}
+	}
+}
+
+func getMgmtdServerAddresses(r *task.Runtime) string {
+	addrI, ok := r.Load(task.RuntimeMgmtdServerAddresseslKey)
+	if !ok {
+		return ""
+	}
+	return addrI.(string)
+}
+
+type upload3FSMainConfigStep struct {
+	task.BaseStep
+
+	imgName        string
+	containerName  string
+	service        string
+	serviceType    string
+	serviceWorkDir string
+}
+
+func (s *upload3FSMainConfigStep) Execute(ctx context.Context) error {
+	s.Logger.Infof("Upload %s main config", s.service)
+	img, err := image.GetImage(s.Runtime.Cfg.Registry.CustomRegistry, s.imgName)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	args := &external.RunArgs{
+		Image:       img,
+		Name:        &s.containerName,
+		HostNetwork: true,
+		Privileged:  common.Pointer(true),
+		Rm:          common.Pointer(true),
+		Entrypoint:  common.Pointer("''"),
+		Ulimits: map[string]string{
+			"nofile": "1048576:1048576",
+		},
+		Command: []string{
+			"/opt/3fs/bin/admin_cli",
+			"-cfg", "/opt/3fs/etc/admin_cli.toml",
+			"--config.mgmtd_client.mgmtd_server_addresses",
+			fmt.Sprintf("'%s'", getMgmtdServerAddresses(s.Runtime)),
+			fmt.Sprintf("'set-config --type %s --file /opt/3fs/etc/%s.toml'",
+				s.serviceType, s.service),
+		},
+		Volumes: []*external.VolumeArgs{
+			{
+				Source: getConfigDir(s.serviceWorkDir),
+				Target: "/opt/3fs/etc/",
+			},
+			{
+				Source: "/dev",
+				Target: "/dev",
+			},
+		},
+	}
+	_, err = s.Em.Docker.Run(ctx, args)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	s.Logger.Infof("Service %s main config uploaded", s.service)
+	return nil
+}
+
+// NewUpload3FSMainConfigStepFunc is upload3FSMainConfigStep factory func.
+func NewUpload3FSMainConfigStepFunc(
+	img, containerName, service, serviceWorkDir, serviceType string) func() task.Step {
+
+	return func() task.Step {
+		return &upload3FSMainConfigStep{
+			imgName:        img,
+			containerName:  containerName,
+			service:        service,
+			serviceWorkDir: serviceWorkDir,
+			serviceType:    serviceType,
 		}
 	}
 }
