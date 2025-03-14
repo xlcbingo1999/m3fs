@@ -1,13 +1,17 @@
 package monitor
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
 
+	"github.com/open3fs/m3fs/pkg/common"
 	"github.com/open3fs/m3fs/pkg/config"
+	"github.com/open3fs/m3fs/pkg/external"
+	"github.com/open3fs/m3fs/pkg/image"
 	ttask "github.com/open3fs/m3fs/tests/task"
 )
 
@@ -41,4 +45,95 @@ func (s *genMonitorConfigStepSuite) Test() {
 	_, err := os.ReadFile(filepath.Join(tmpDir, "monitor_collector_main.toml"))
 	s.NoError(err)
 	s.NoError(os.RemoveAll(tmpDir))
+}
+
+func TestRunContainerStep(t *testing.T) {
+	suiteRun(t, &runContainerStepSuite{})
+}
+
+type runContainerStepSuite struct {
+	ttask.StepSuite
+
+	step *runContainerStep
+}
+
+func (s *runContainerStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.step = &runContainerStep{}
+	s.SetupRuntime()
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.Runtime.Store("monitor_temp_config_dir", "/tmp/3f-monitor.xxx")
+}
+
+func (s *runContainerStepSuite) Test() {
+	etcDir := "/root/3fs/monitor/etc"
+	logDir := "/root/3fs/monitor/log"
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", etcDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", logDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Scp", "/tmp/3f-monitor.xxx/monitor_collector_main.toml",
+		"/root/3fs/monitor/etc/monitor_collector_main.toml").Return(nil)
+	img, err := image.GetImage("", "3fs")
+	s.NoError(err)
+	s.MockDocker.On("Run", &external.RunArgs{
+		Image:       img,
+		Name:        common.Pointer("3fs-monitor"),
+		HostNetwork: true,
+		Privileged:  common.Pointer(true),
+		Detach:      common.Pointer(true),
+		Volumes: []*external.VolumeArgs{
+			{
+				Source: etcDir,
+				Target: "/opt/3fs/etc",
+			},
+			{
+				Source: logDir,
+				Target: "/var/log/3fs",
+			},
+		},
+		Command: []string{
+			"/opt/3fs/bin/monitor_collector_main",
+			"--cfg",
+			"/opt/3fs/etc/monitor_collector_main.toml",
+		},
+	}).Return(new(bytes.Buffer), nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	s.MockRunner.AssertExpectations(s.T())
+	s.MockDocker.AssertExpectations(s.T())
+}
+
+func TestRmContainerStep(t *testing.T) {
+	suiteRun(t, &rmContainerStepSuite{})
+}
+
+type rmContainerStepSuite struct {
+	ttask.StepSuite
+
+	step   *rmContainerStep
+	etcDir string
+	logDir string
+}
+
+func (s *rmContainerStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.step = &rmContainerStep{}
+	s.SetupRuntime()
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.etcDir = "/root/3fs/monitor/etc"
+	s.logDir = "/root/3fs/monitor/log"
+}
+
+func (s *rmContainerStepSuite) TestRmContainerStep() {
+	s.MockDocker.On("Rm", s.Cfg.Services.Monitor.ContainerName, true).
+		Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.etcDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.logDir}).Return(new(bytes.Buffer), nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	s.MockRunner.AssertExpectations(s.T())
+	s.MockDocker.AssertExpectations(s.T())
 }

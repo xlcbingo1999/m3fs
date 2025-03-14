@@ -130,7 +130,9 @@ func (c *Config) SetValidate(workDir string) error {
 	if c.Name == "" {
 		return errors.New("name is required")
 	}
-	c.WorkDir = workDir
+	if workDir != "" {
+		c.WorkDir = workDir
+	}
 	if !networkTypes.Contains(c.NetworkType) {
 		return errors.Errorf("invalid network type: %s", c.NetworkType)
 	}
@@ -163,28 +165,28 @@ func (c *Config) SetValidate(workDir string) error {
 		c.Services.Fdb.Port = 4500
 	}
 	if c.Services.Fdb.WorkDir == "" {
-		c.Services.Fdb.WorkDir = path.Join(workDir, "fdb")
+		c.Services.Fdb.WorkDir = path.Join(c.WorkDir, "fdb")
 	}
 
 	if err := c.validServiceNodes("clickhouse", c.Services.Clickhouse.Nodes, nodeSet, true); err != nil {
 		return errors.Trace(err)
 	}
 	if c.Services.Clickhouse.WorkDir == "" {
-		c.Services.Clickhouse.WorkDir = path.Join(workDir, "clickhouse")
+		c.Services.Clickhouse.WorkDir = path.Join(c.WorkDir, "clickhouse")
 	}
 
 	if err := c.validServiceNodes("monitor", c.Services.Monitor.Nodes, nodeSet, true); err != nil {
 		return errors.Trace(err)
 	}
 	if c.Services.Monitor.WorkDir == "" {
-		c.Services.Monitor.WorkDir = path.Join(workDir, "monitor")
+		c.Services.Monitor.WorkDir = path.Join(c.WorkDir, "monitor")
 	}
 
 	if err := c.validServiceNodes("mgmtd", c.Services.Mgmtd.Nodes, nodeSet, true); err != nil {
 		return errors.Trace(err)
 	}
 	if c.Services.Mgmtd.WorkDir == "" {
-		c.Services.Mgmtd.WorkDir = path.Join(workDir, "mgmtd")
+		c.Services.Mgmtd.WorkDir = path.Join(c.WorkDir, "mgmtd")
 	}
 	if c.Services.Mgmtd.RDMAListenPort == 0 {
 		c.Services.Mgmtd.RDMAListenPort = 8000
@@ -197,7 +199,7 @@ func (c *Config) SetValidate(workDir string) error {
 		return errors.Trace(err)
 	}
 	if c.Services.Meta.WorkDir == "" {
-		c.Services.Meta.WorkDir = path.Join(workDir, "meta")
+		c.Services.Meta.WorkDir = path.Join(c.WorkDir, "meta")
 	}
 	if c.Services.Meta.RDMAListenPort == 0 {
 		c.Services.Meta.RDMAListenPort = 8001

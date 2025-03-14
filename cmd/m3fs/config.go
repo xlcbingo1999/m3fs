@@ -44,6 +44,7 @@ var configCmd = &cli.Command{
 }
 
 var sampleConfigTemplate = `name: "{{.name}}"
+workDir: "/root/3fs"
 networktype: "RDMA"
 nodes:
   - name: meta
@@ -69,12 +70,10 @@ services:
     containerName: 3fs-fdb
     nodes: 
       - meta
-    workDir: "/root/3fs/fdb"
   clickhouse:
     containerName: 3fs-clickhouse
     nodes: 
       - meta
-    workDir: "/root/3fs/clickhouse"
     db: 3fs
     user: default
     password: password
@@ -83,7 +82,6 @@ services:
     containerName: 3fs-monitor
     nodes:
       - meta
-    workDir: "/root/3fs/monitor"
   mgmtd:
     containerName: 3fs-mgmtd
     nodes: 
