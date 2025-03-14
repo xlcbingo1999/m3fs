@@ -139,7 +139,7 @@ type rmContainerStep struct {
 
 func (s *rmContainerStep) Execute(ctx context.Context) error {
 	containerName := s.Runtime.Services.Fdb.ContainerName
-	s.Logger.Infof("Remove fdb container %s", containerName)
+	s.Logger.Infof("Removing fdb container %s", containerName)
 	_, err := s.Em.Docker.Rm(ctx, containerName, true)
 	if err != nil {
 		return errors.Trace(err)

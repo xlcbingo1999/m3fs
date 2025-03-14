@@ -86,6 +86,7 @@ func (s *startContainerStepSuite) TestStartContainerStep() {
 		Image:       img,
 		Name:        common.Pointer("3fs-clickhouse"),
 		HostNetwork: true,
+		Detach:      common.Pointer(true),
 		Envs: map[string]string{
 			"CLICKHOUSE_DB":       "3fs",
 			"CLICKHOUSE_USER":     "default",
@@ -112,6 +113,73 @@ func (s *startContainerStepSuite) TestStartContainerStep() {
 	}).Return(new(bytes.Buffer), nil)
 
 	s.NotNil(s.step)
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	s.MockRunner.AssertExpectations(s.T())
+	s.MockDocker.AssertExpectations(s.T())
+}
+
+func TestInitClusterStepSuite(t *testing.T) {
+	suiteRun(t, &initClusterStepSuite{})
+}
+
+type initClusterStepSuite struct {
+	ttask.StepSuite
+
+	step *initClusterStep
+}
+
+func (s *initClusterStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.step = &initClusterStep{}
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+}
+
+func (s *initClusterStepSuite) TestInit() {
+	s.MockDocker.On("Exec", s.Runtime.Services.Clickhouse.ContainerName,
+		"bash", []string{"-c", `"clickhouse-client -n < /tmp/sql/3fs-monitor.sql"`}).
+		Return(new(bytes.Buffer), nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	s.MockDocker.AssertExpectations(s.T())
+}
+
+func TestRmContainerStep(t *testing.T) {
+	suiteRun(t, &rmContainerStepSuite{})
+}
+
+type rmContainerStepSuite struct {
+	ttask.StepSuite
+
+	step      *rmContainerStep
+	dataDir   string
+	logDir    string
+	configDir string
+	sqlDir    string
+}
+
+func (s *rmContainerStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.step = &rmContainerStep{}
+	s.SetupRuntime()
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.dataDir = "/root/3fs/clickhouse/data"
+	s.logDir = "/root/3fs/clickhouse/log"
+	s.configDir = "/root/3fs/clickhouse/config.d"
+	s.sqlDir = "/root/3fs/clickhouse/sql"
+}
+
+func (s *rmContainerStepSuite) TestRmContainerStep() {
+	s.MockDocker.On("Rm", s.Cfg.Services.Clickhouse.ContainerName, true).
+		Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.dataDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.logDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.configDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.sqlDir}).Return(new(bytes.Buffer), nil)
+
 	s.NoError(s.step.Execute(s.Ctx()))
 
 	s.MockRunner.AssertExpectations(s.T())

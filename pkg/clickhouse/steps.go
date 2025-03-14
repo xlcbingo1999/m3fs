@@ -8,7 +8,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"text/template"
+	"time"
 
+	"github.com/open3fs/m3fs/pkg/common"
 	"github.com/open3fs/m3fs/pkg/errors"
 	"github.com/open3fs/m3fs/pkg/external"
 	"github.com/open3fs/m3fs/pkg/image"
@@ -64,7 +66,7 @@ func (s *genClickhouseConfigStep) Execute(context.Context) error {
 		return errors.Annotate(err, "parse config.xml template")
 	}
 	err = configTmpl.Execute(configFile, map[string]string{
-		"Port": strconv.Itoa(s.Runtime.Services.Clickhouse.TCPPort),
+		"TCPPort": strconv.Itoa(s.Runtime.Services.Clickhouse.TCPPort),
 	})
 	if err != nil {
 		return errors.Annotate(err, "write config.xml")
@@ -137,6 +139,7 @@ func (s *startContainerStep) Execute(ctx context.Context) error {
 		Image:       img,
 		Name:        &s.Runtime.Services.Clickhouse.ContainerName,
 		HostNetwork: true,
+		Detach:      common.Pointer(true),
 		Envs: map[string]string{
 			"CLICKHOUSE_DB":       s.Runtime.Services.Clickhouse.Db,
 			"CLICKHOUSE_USER":     s.Runtime.Services.Clickhouse.User,
@@ -165,7 +168,72 @@ func (s *startContainerStep) Execute(ctx context.Context) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	time.Sleep(time.Second * 5)
 
 	s.Logger.Infof("Started container %s", s.Runtime.Services.Clickhouse.ContainerName)
+	return nil
+}
+
+type initClusterStep struct {
+	task.BaseStep
+}
+
+func (s *initClusterStep) Execute(ctx context.Context) error {
+	err := s.initCluster(ctx)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+func (s *initClusterStep) initCluster(ctx context.Context) error {
+	s.Logger.Infof("Initializing clickhouse cluster")
+	_, err := s.Em.Docker.Exec(ctx, s.Runtime.Services.Clickhouse.ContainerName,
+		"bash", "-c", `"clickhouse-client -n < /tmp/sql/3fs-monitor.sql"`)
+	if err != nil {
+		return errors.Annotate(err, "initialize fdb cluster")
+	}
+	s.Logger.Infof("Initialized clickhouse cluster")
+	return nil
+}
+
+type rmContainerStep struct {
+	task.BaseStep
+}
+
+func (s *rmContainerStep) Execute(ctx context.Context) error {
+	containerName := s.Runtime.Services.Clickhouse.ContainerName
+	s.Logger.Infof("Removing clickhouse container %s", containerName)
+	_, err := s.Em.Docker.Rm(ctx, containerName, true)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	dataDir := path.Join(s.Runtime.Services.Clickhouse.WorkDir, "data")
+	s.Logger.Infof("Remove clickhouse container data dir %s", dataDir)
+	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", dataDir)
+	if err != nil {
+		return errors.Annotatef(err, "rm %s", dataDir)
+	}
+	logDir := path.Join(s.Runtime.Services.Clickhouse.WorkDir, "log")
+	s.Logger.Infof("Remove clickhouse container log dir %s", logDir)
+	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", logDir)
+	if err != nil {
+		return errors.Annotatef(err, "rm %s", logDir)
+	}
+	configDir := path.Join(s.Runtime.Services.Clickhouse.WorkDir, "config.d")
+	s.Logger.Infof("Remove clickhouse container config dir %s", configDir)
+	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", configDir)
+	if err != nil {
+		return errors.Annotatef(err, "rm %s", configDir)
+	}
+	sqlDir := path.Join(s.Runtime.Services.Clickhouse.WorkDir, "sql")
+	s.Logger.Infof("Remove clickhouse container sql init dir %s", sqlDir)
+	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", sqlDir)
+	if err != nil {
+		return errors.Annotatef(err, "rm %s", sqlDir)
+	}
+
+	s.Logger.Infof("ClickHouse container %s successfully removed", containerName)
 	return nil
 }

@@ -108,7 +108,7 @@ type Services struct {
 
 // Registry is the service contaner image registry config definition
 type Registry struct {
-	CustomRegistry string
+	CustomRegistry string `yaml:"customRegistry"`
 }
 
 // Config is the 3fs cluster config definition
