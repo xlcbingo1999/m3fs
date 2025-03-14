@@ -1,7 +1,6 @@
 package external
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -31,9 +30,9 @@ func (cmd *Command) AppendArgs(args ...any) {
 }
 
 // Exec execute the command
-func (cmd *Command) Exec(ctx context.Context) (out *bytes.Buffer, err error) {
+func (cmd *Command) Exec(ctx context.Context) (out string, err error) {
 	if cmd.cmdName == "" {
-		return nil, fmt.Errorf("No command")
+		return "", fmt.Errorf("No command")
 	}
 	return cmd.runner.Exec(ctx, cmd.cmdName, cmd.args...)
 }

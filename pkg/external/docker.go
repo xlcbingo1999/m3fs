@@ -1,7 +1,6 @@
 package external
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 
@@ -11,9 +10,9 @@ import (
 // DockerInterface provides interface about docker.
 type DockerInterface interface {
 	GetContainer(string) string
-	Run(ctx context.Context, args *RunArgs) (out *bytes.Buffer, err error)
-	Rm(ctx context.Context, name string, force bool) (out *bytes.Buffer, err error)
-	Exec(context.Context, string, string, ...string) (*bytes.Buffer, error)
+	Run(ctx context.Context, args *RunArgs) (out string, err error)
+	Rm(ctx context.Context, name string, force bool) (out string, err error)
+	Exec(context.Context, string, string, ...string) (out string, err error)
 }
 
 type dockerExternal struct {
@@ -60,7 +59,7 @@ type VolumeArgs struct {
 	Target string
 }
 
-func (de *dockerExternal) Run(ctx context.Context, args *RunArgs) (out *bytes.Buffer, err error) {
+func (de *dockerExternal) Run(ctx context.Context, args *RunArgs) (out string, err error) {
 	params := []string{"run"}
 	if args.Name != nil {
 		params = append(params, "--name", *args.Name)
@@ -107,7 +106,7 @@ func (de *dockerExternal) Run(ctx context.Context, args *RunArgs) (out *bytes.Bu
 	return out, errors.Trace(err)
 }
 
-func (de *dockerExternal) Rm(ctx context.Context, name string, force bool) (out *bytes.Buffer, err error) {
+func (de *dockerExternal) Rm(ctx context.Context, name string, force bool) (out string, err error) {
 	args := []string{"rm"}
 	if force {
 		args = append(args, "--force")
@@ -118,7 +117,7 @@ func (de *dockerExternal) Rm(ctx context.Context, name string, force bool) (out 
 }
 
 func (de *dockerExternal) Exec(
-	ctx context.Context, container, cmd string, args ...string) (out *bytes.Buffer, err error) {
+	ctx context.Context, container, cmd string, args ...string) (out string, err error) {
 
 	params := []string{"exec", container, cmd}
 	params = append(params, args...)

@@ -1,7 +1,6 @@
 package external
 
 import (
-	"bytes"
 	"context"
 	"sync"
 
@@ -26,7 +25,7 @@ func (eb *externalBase) init(em *Manager) {
 }
 
 func (eb *externalBase) runWithAny(
-	ctx context.Context, cmdName string, args ...any) (*bytes.Buffer, error) {
+	ctx context.Context, cmdName string, args ...any) (string, error) {
 
 	cmd := NewCommand(cmdName, args...)
 	cmd.runner = eb.em.Runner
@@ -37,9 +36,7 @@ func (eb *externalBase) runWithAny(
 	return out, nil
 }
 
-func (eb *externalBase) run(ctx context.Context, cmdName string, args ...string) (
-	*bytes.Buffer, error) {
-
+func (eb *externalBase) run(ctx context.Context, cmdName string, args ...string) (string, error) {
 	anyArgs := []any{}
 	for _, arg := range args {
 		anyArgs = append(anyArgs, arg)

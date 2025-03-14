@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 	"strings"
@@ -233,4 +234,9 @@ func StackTrace(err error) string {
 		result = append(result, lines[i])
 	}
 	return strings.Join(result, "\n")
+}
+
+// Is reports whether any error in err's tree matches target.
+func Is(err, target error) bool {
+	return errors.Is(err, target)
 }

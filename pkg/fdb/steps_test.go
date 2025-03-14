@@ -1,7 +1,6 @@
 package fdb
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -80,8 +79,8 @@ func (s *runContainerStepSuite) SetupTest() {
 }
 
 func (s *runContainerStepSuite) TestRunContainerStep() {
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return(new(bytes.Buffer), nil)
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.logDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return("", nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.logDir}).Return("", nil)
 	img, err := image.GetImage("", "fdb")
 	s.NoError(err)
 	s.MockDocker.On("Run", &external.RunArgs{
@@ -102,7 +101,7 @@ func (s *runContainerStepSuite) TestRunContainerStep() {
 				Target: "/var/fdb/logs",
 			},
 		},
-	}).Return(new(bytes.Buffer), nil)
+	}).Return("", nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
@@ -111,8 +110,8 @@ func (s *runContainerStepSuite) TestRunContainerStep() {
 }
 
 func (s *runContainerStepSuite) TestRunContainerFailed() {
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return(new(bytes.Buffer), nil)
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.logDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return("", nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.logDir}).Return("", nil)
 	img, err := image.GetImage("", "fdb")
 	s.NoError(err)
 	s.MockDocker.On("Run", &external.RunArgs{
@@ -142,8 +141,8 @@ func (s *runContainerStepSuite) TestRunContainerFailed() {
 }
 
 func (s *runContainerStepSuite) TestRunDirFailed() {
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return(new(bytes.Buffer), nil)
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.logDir}).Return(new(bytes.Buffer), errors.New("dummy error"))
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return("", nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.logDir}).Return("", errors.New("dummy error"))
 
 	s.Error(s.step.Execute(s.Ctx()), "dummy error")
 
@@ -171,11 +170,10 @@ func (s *initClusterStepSuite) SetupTest() {
 
 func (s *initClusterStepSuite) TestInit() {
 	s.MockDocker.On("Exec", s.Runtime.Services.Fdb.ContainerName,
-		"fdbcli", []string{"--exec", "'configure new single ssd'"}).
-		Return(new(bytes.Buffer), nil)
+		"fdbcli", []string{"--exec", "'configure new single ssd'"}).Return("", nil)
 	s.MockDocker.On("Exec", s.Runtime.Services.Fdb.ContainerName,
 		"fdbcli", []string{"--exec", "'status minimal'"}).
-		Return(bytes.NewBufferString("The database is available."), nil)
+		Return("The database is available.", nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
@@ -195,7 +193,7 @@ func (s *initClusterStepSuite) TestInitClusterFailed() {
 func (s *initClusterStepSuite) TestWaitClusterInitializedFailed() {
 	s.MockDocker.On("Exec", s.Runtime.Services.Fdb.ContainerName,
 		"fdbcli", []string{"--exec", "'configure new single ssd'"}).
-		Return(new(bytes.Buffer), nil)
+		Return("", nil)
 	s.MockDocker.On("Exec", s.Runtime.Services.Fdb.ContainerName,
 		"fdbcli", []string{"--exec", "'status minimal'"}).
 		Return(nil, errors.New("dummy error"))
@@ -231,9 +229,9 @@ func (s *rmContainerStepSuite) SetupTest() {
 
 func (s *rmContainerStepSuite) TestRmContainerStep() {
 	s.MockDocker.On("Rm", s.Cfg.Services.Fdb.ContainerName, true).
-		Return(new(bytes.Buffer), nil)
-	s.MockRunner.On("Exec", "rm", []string{"-rf", s.dataDir}).Return(new(bytes.Buffer), nil)
-	s.MockRunner.On("Exec", "rm", []string{"-rf", s.logDir}).Return(new(bytes.Buffer), nil)
+		Return("", nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.dataDir}).Return("", nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.logDir}).Return("", nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
@@ -243,7 +241,7 @@ func (s *rmContainerStepSuite) TestRmContainerStep() {
 
 func (s *rmContainerStepSuite) TestRmContainerFailed() {
 	s.MockDocker.On("Rm", s.Cfg.Services.Fdb.ContainerName, true).
-		Return(new(bytes.Buffer), errors.New("dummy error"))
+		Return("", errors.New("dummy error"))
 
 	s.Error(s.step.Execute(s.Ctx()), "dummy error")
 
@@ -251,10 +249,8 @@ func (s *rmContainerStepSuite) TestRmContainerFailed() {
 }
 
 func (s *rmContainerStepSuite) TestRmDirFailed() {
-	s.MockDocker.On("Rm", s.Cfg.Services.Fdb.ContainerName, true).
-		Return(new(bytes.Buffer), nil)
-	s.MockRunner.On("Exec", "rm", []string{"-rf", s.dataDir}).
-		Return(new(bytes.Buffer), errors.New("dummy error"))
+	s.MockDocker.On("Rm", s.Cfg.Services.Fdb.ContainerName, true).Return("", nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.dataDir}).Return("", errors.New("dummy error"))
 
 	s.Error(s.step.Execute(s.Ctx()), "dummy error")
 

@@ -1,7 +1,6 @@
 package steps
 
 import (
-	"bytes"
 	"os"
 	"testing"
 
@@ -213,7 +212,7 @@ func (s *run3FSContainerStepSuite) TestRunContainer() {
 				Target: "/dev",
 			},
 		},
-	}).Return(new(bytes.Buffer), nil)
+	}).Return("", nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
@@ -244,9 +243,8 @@ func (s *rm3FSContainerStepSuite) SetupTest() {
 }
 
 func (s *rm3FSContainerStepSuite) TestRmContainerStep() {
-	s.MockDocker.On("Rm", s.Cfg.Services.Mgmtd.ContainerName, true).
-		Return(new(bytes.Buffer), nil)
-	s.MockRunner.On("Exec", "rm", []string{"-rf", s.configDir}).Return(new(bytes.Buffer), nil)
+	s.MockDocker.On("Rm", s.Cfg.Services.Mgmtd.ContainerName, true).Return("", nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.configDir}).Return("", nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
@@ -256,7 +254,7 @@ func (s *rm3FSContainerStepSuite) TestRmContainerStep() {
 
 func (s *rm3FSContainerStepSuite) TestRmContainerFailed() {
 	s.MockDocker.On("Rm", s.Cfg.Services.Mgmtd.ContainerName, true).
-		Return(new(bytes.Buffer), errors.New("dummy error"))
+		Return("", errors.New("dummy error"))
 
 	s.Error(s.step.Execute(s.Ctx()), "dummy error")
 
@@ -264,10 +262,9 @@ func (s *rm3FSContainerStepSuite) TestRmContainerFailed() {
 }
 
 func (s *rm3FSContainerStepSuite) TestRmDirFailed() {
-	s.MockDocker.On("Rm", s.Cfg.Services.Mgmtd.ContainerName, true).
-		Return(new(bytes.Buffer), nil)
+	s.MockDocker.On("Rm", s.Cfg.Services.Mgmtd.ContainerName, true).Return("", nil)
 	s.MockRunner.On("Exec", "rm", []string{"-rf", s.configDir}).
-		Return(new(bytes.Buffer), errors.New("dummy error"))
+		Return("", errors.New("dummy error"))
 
 	s.Error(s.step.Execute(s.Ctx()), "dummy error")
 
@@ -328,7 +325,7 @@ func (s *upload3FSMainConfigStepSuite) TestRunContainer() {
 				Target: "/dev",
 			},
 		},
-	}).Return(new(bytes.Buffer), nil)
+	}).Return("", nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
