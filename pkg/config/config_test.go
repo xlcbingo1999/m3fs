@@ -51,6 +51,9 @@ func (s *configSuite) newConfigWithDefaults() *Config {
 	cfg.Services.Clickhouse.WorkDir = s.ckDir
 	cfg.Services.Fdb.Port = 49990
 	cfg.Nodes[0].Port = 123
+	cfg.Services.Mgmtd.WorkDir = "/root/mgmtd"
+	cfg.Services.Mgmtd.RDMAListenPort = 8033
+	cfg.Services.Mgmtd.TCPListenPort = 9003
 
 	return cfg
 }
@@ -61,6 +64,9 @@ func (s *configSuite) TestValidateConfig() {
 	cfg.Services.Clickhouse.WorkDir = s.ckDir
 	cfg.Services.Monitor.WorkDir = "/monitor"
 	cfg.Services.Fdb.Port = 49990
+	cfg.Services.Mgmtd.WorkDir = "/root/mgmtd"
+	cfg.Services.Mgmtd.RDMAListenPort = 8000
+	cfg.Services.Mgmtd.TCPListenPort = 9000
 	cfg.Nodes[0].Port = 123
 	cfgExp := *cfg
 
@@ -77,6 +83,9 @@ func (s *configSuite) TestSetConfigDefaults() {
 	s.Equal(cfg.Services.Fdb.WorkDir, "/root/fdb")
 	s.Equal(cfg.Services.Clickhouse.WorkDir, "/root/clickhouse")
 	s.Equal(cfg.Services.Monitor.WorkDir, "/root/monitor")
+	s.Equal(cfg.Services.Mgmtd.WorkDir, "/root/mgmtd")
+	s.Equal(cfg.Services.Mgmtd.RDMAListenPort, 8000)
+	s.Equal(cfg.Services.Mgmtd.TCPListenPort, 9000)
 	s.Equal(cfg.Services.Fdb.Port, 4500)
 	s.Equal(cfg.Nodes[0].Port, 22)
 }

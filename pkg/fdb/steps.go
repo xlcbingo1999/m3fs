@@ -48,7 +48,7 @@ func (s *runContainerStep) Execute(ctx context.Context) error {
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", dataDir)
 	}
-	logDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "log")
+	logDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "logs")
 	_, err = s.Em.Runner.Exec(ctx, "mkdir", "-p", logDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", logDir)
@@ -74,7 +74,7 @@ func (s *runContainerStep) Execute(ctx context.Context) error {
 			},
 			{
 				Source: logDir,
-				Target: "/var/fdb/log",
+				Target: "/var/fdb/logs",
 			},
 		},
 	}
@@ -151,7 +151,7 @@ func (s *rmContainerStep) Execute(ctx context.Context) error {
 	if err != nil {
 		return errors.Annotatef(err, "rm %s", dataDir)
 	}
-	logDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "log")
+	logDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "logs")
 	s.Logger.Infof("Remove fdb container log dir %s", logDir)
 	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", logDir)
 	if err != nil {

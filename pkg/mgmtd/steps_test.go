@@ -1,14 +1,18 @@
 package mgmtd
 
 import (
+	"bytes"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/open3fs/m3fs/pkg/common"
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
+	"github.com/open3fs/m3fs/pkg/external"
+	"github.com/open3fs/m3fs/pkg/image"
 	"github.com/open3fs/m3fs/pkg/task"
 	ttask "github.com/open3fs/m3fs/tests/task"
 )
@@ -47,11 +51,11 @@ func (s *genNodeIDStepSuite) SetupTest() {
 func (s *genNodeIDStepSuite) TestGenNodeID() {
 	s.NoError(s.step.Execute(s.Ctx()))
 
-	idI, ok := s.Runtime.Load(getNodeID(s.Cfg.Nodes[0].Name))
+	idI, ok := s.Runtime.Load(getNodeIDKey(s.Cfg.Nodes[0].Name))
 	s.True(ok)
 	s.Equal(1, idI.(int))
 
-	idI2, ok := s.Runtime.Load(getNodeID(s.Cfg.Nodes[1].Name))
+	idI2, ok := s.Runtime.Load(getNodeIDKey(s.Cfg.Nodes[1].Name))
 	s.True(ok)
 	s.Equal(2, idI2.(int))
 }
@@ -81,11 +85,12 @@ func (s *prepareMgmtdConfigStepSuite) SetupTest() {
 	s.Cfg.Name = "test-cluster"
 	s.node = s.Cfg.Nodes[0]
 	s.Cfg.Services.Mgmtd.Nodes = []string{"node1"}
+	s.Cfg.Services.Mgmtd.WorkDir = "/root"
 	s.Cfg.Services.Mgmtd.TCPListenPort = 9000
 	s.Cfg.Services.Mgmtd.RDMAListenPort = 8000
 	s.SetupRuntime()
 	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0])
-	s.Runtime.Store(getNodeID(s.Cfg.Nodes[0].Name), 1)
+	s.Runtime.Store(getNodeIDKey(s.Cfg.Nodes[0].Name), 1)
 	s.fdbContent = "xxxx,xxxxx,xxxx"
 	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, s.fdbContent)
 }
@@ -98,7 +103,7 @@ func (s *prepareMgmtdConfigStepSuite) mockGenConfig(path, tmpContent string) {
 	s.MockLocalFS.On("WriteFile", path, data, os.FileMode(0644)).Return(nil)
 }
 
-func (s *prepareMgmtdConfigStepSuite) getGeneratedConfigContent() (string, string, string) {
+func (s *prepareMgmtdConfigStepSuite) getGeneratedConfigContent() (string, string, string, string) {
 	mainApp := `allow_empty_node_id = true
 node_id = 1`
 	mainLauncher := `allow_dev_version = true
@@ -377,20 +382,27 @@ max_retry_count = 10
 buckets = 127
 exist_ttl = '5min'
 inexist_ttl = '10s'`
-	return mainApp, mainLauncher, mainContent
+	adminCli := `cluster_id = "test-cluster"
+
+[fdb]
+clusterFile = '/opt/3fs/etc/fdb.cluster'`
+	return mainApp, mainLauncher, mainContent, adminCli
 }
 
 func (s *prepareMgmtdConfigStepSuite) testPrepareConfig(removeAllErr error) {
 	s.MockLocalFS.On("MkdirAll", s.Runtime.Services.Mgmtd.WorkDir).Return(nil)
 	tmpDir := "/root/tmp..."
-	s.MockLocalFS.On("MkdirTemp", s.Runtime.Services.Mgmtd.WorkDir, s.node.Name+".*").Return(tmpDir, nil)
+	s.MockLocalFS.On("MkdirTemp", s.Runtime.Services.Mgmtd.WorkDir, s.node.Name+".*").
+		Return(tmpDir, nil)
 	s.MockLocalFS.On("RemoveAll", tmpDir).Return(removeAllErr)
-	mainAppConfig, mainLauncherConfig, mainConfig := s.getGeneratedConfigContent()
+	mainAppConfig, mainLauncherConfig, mainConfig, adminCli := s.getGeneratedConfigContent()
 	s.mockGenConfig(tmpDir+"/mgmtd_main_app.toml", mainAppConfig)
 	s.mockGenConfig(tmpDir+"/mgmtd_main_launcher.toml", mainLauncherConfig)
 	s.mockGenConfig(tmpDir+"/mgmtd_main.toml", mainConfig)
-	s.MockLocalFS.On("WriteFile", tmpDir+"/fdb.cluster", []byte(s.fdbContent), os.FileMode(0644)).Return(nil)
-	s.MockRunner.On("Scp", tmpDir, s.Cfg.Services.Mgmtd.WorkDir).Return(nil)
+	s.mockGenConfig(tmpDir+"/admin_cli.toml", adminCli)
+	s.MockLocalFS.On("WriteFile", tmpDir+"/fdb.cluster", []byte(s.fdbContent), os.FileMode(0644)).
+		Return(nil)
+	s.MockRunner.On("Scp", tmpDir, s.Cfg.Services.Mgmtd.WorkDir+"/config.d").Return(nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
@@ -404,4 +416,192 @@ func (s *prepareMgmtdConfigStepSuite) TestPrepareConfig() {
 
 func (s *prepareMgmtdConfigStepSuite) TestPrepareConfigWithRemoveTempDirFailed() {
 	s.testPrepareConfig(errors.New("remove temp dir failed"))
+}
+
+func TestInitClusterStepSuite(t *testing.T) {
+	suiteRun(t, &initClusterStepSuite{})
+}
+
+type initClusterStepSuite struct {
+	ttask.StepSuite
+
+	step      *initClusterStep
+	configDir string
+}
+
+func (s *initClusterStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.step = &initClusterStep{}
+	s.Cfg.Services.Mgmtd.WorkDir = "/var/mgmtd"
+	s.configDir = "/var/mgmtd/config.d"
+	s.SetupRuntime()
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, "xxxx")
+}
+
+func (s *initClusterStepSuite) TestInitCluster() {
+	img, err := image.GetImage(s.Runtime.Cfg.Registry.CustomRegistry, "3fs")
+	s.NoError(err)
+	s.MockDocker.On("Run", &external.RunArgs{
+		Image:      img,
+		Name:       &s.Cfg.Services.Mgmtd.ContainerName,
+		Entrypoint: common.Pointer("''"),
+		Rm:         common.Pointer(true),
+		Command: []string{
+			"/opt/3fs/bin/admin_cli",
+			"-cfg", "/opt/3fs/etc/admin_cli.toml",
+			"'init-cluster --mgmtd /opt/3fs/etc/mgmtd_main.toml 1 1048576 16'",
+		},
+		HostNetwork: true,
+		Volumes: []*external.VolumeArgs{
+			{
+				Source: s.configDir + "/mgmtd_main_app.toml",
+				Target: "/opt/3fs/etc/mgmtd_main_app.toml",
+			},
+			{
+				Source: s.configDir + "/mgmtd_main_launcher.toml",
+				Target: "/opt/3fs/etc/mgmtd_main_launcher.toml",
+			},
+			{
+				Source: s.configDir + "/mgmtd_main.toml",
+				Target: "/opt/3fs/etc/mgmtd_main.toml",
+			},
+			{
+				Source: s.configDir + "/admin_cli.toml",
+				Target: "/opt/3fs/etc/admin_cli.toml",
+			},
+			{
+				Source: s.configDir + "/fdb.cluster",
+				Target: "/opt/3fs/etc/fdb.cluster",
+			},
+		},
+	}).Return(new(bytes.Buffer), nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	s.MockRunner.AssertExpectations(s.T())
+	s.MockDocker.AssertExpectations(s.T())
+}
+
+func TestRunConatinerStepSuite(t *testing.T) {
+	suiteRun(t, &runContainerStepSuite{})
+}
+
+type runContainerStepSuite struct {
+	ttask.StepSuite
+
+	step      *runContainerStep
+	configDir string
+}
+
+func (s *runContainerStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.step = &runContainerStep{}
+	s.Cfg.Services.Mgmtd.WorkDir = "/var/mgmtd"
+	s.configDir = "/var/mgmtd/config.d"
+	s.SetupRuntime()
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, "xxxx")
+}
+
+func (s *runContainerStepSuite) TestRunContainer() {
+	img, err := image.GetImage(s.Runtime.Cfg.Registry.CustomRegistry, "3fs")
+	s.NoError(err)
+	s.MockDocker.On("Run", &external.RunArgs{
+		Image:       img,
+		Name:        &s.Cfg.Services.Mgmtd.ContainerName,
+		Detach:      common.Pointer(true),
+		HostNetwork: true,
+		Privileged:  common.Pointer(true),
+		Ulimits: map[string]string{
+			"nofile": "1048576:1048576",
+		},
+		Command: []string{
+			"/opt/3fs/bin/mgmtd_main",
+			"--launcher_cfg", "/opt/3fs/etc/mgmtd_main_launcher.toml",
+			"--app_cfg", "/opt/3fs/etc/mgmtd_main_app.toml",
+		},
+		Volumes: []*external.VolumeArgs{
+			{
+				Source: s.configDir + "/mgmtd_main_app.toml",
+				Target: "/opt/3fs/etc/mgmtd_main_app.toml",
+			},
+			{
+				Source: s.configDir + "/mgmtd_main_launcher.toml",
+				Target: "/opt/3fs/etc/mgmtd_main_launcher.toml",
+			},
+			{
+				Source: s.configDir + "/mgmtd_main.toml",
+				Target: "/opt/3fs/etc/mgmtd_main.toml",
+			},
+			{
+				Source: s.configDir + "/admin_cli.toml",
+				Target: "/opt/3fs/etc/admin_cli.toml",
+			},
+			{
+				Source: s.configDir + "/fdb.cluster",
+				Target: "/opt/3fs/etc/fdb.cluster",
+			},
+		},
+	}).Return(new(bytes.Buffer), nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	s.MockRunner.AssertExpectations(s.T())
+	s.MockDocker.AssertExpectations(s.T())
+}
+
+func TestRmContainerStepSuite(t *testing.T) {
+	suiteRun(t, &rmContainerStepSuite{})
+}
+
+type rmContainerStepSuite struct {
+	ttask.StepSuite
+
+	step      *rmContainerStep
+	configDir string
+}
+
+func (s *rmContainerStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.step = &rmContainerStep{}
+	s.Cfg.Services.Mgmtd.WorkDir = "/root/mgmtd"
+	s.configDir = "/root/mgmtd/config.d"
+	s.SetupRuntime()
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+}
+
+func (s *rmContainerStepSuite) TestRmContainerStep() {
+	s.MockDocker.On("Rm", s.Cfg.Services.Mgmtd.ContainerName, true).
+		Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.configDir}).Return(new(bytes.Buffer), nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	s.MockRunner.AssertExpectations(s.T())
+	s.MockDocker.AssertExpectations(s.T())
+}
+
+func (s *rmContainerStepSuite) TestRmContainerFailed() {
+	s.MockDocker.On("Rm", s.Cfg.Services.Mgmtd.ContainerName, true).
+		Return(new(bytes.Buffer), errors.New("dummy error"))
+
+	s.Error(s.step.Execute(s.Ctx()), "dummy error")
+
+	s.MockDocker.AssertExpectations(s.T())
+}
+
+func (s *rmContainerStepSuite) TestRmDirFailed() {
+	s.MockDocker.On("Rm", s.Cfg.Services.Mgmtd.ContainerName, true).
+		Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.configDir}).
+		Return(new(bytes.Buffer), errors.New("dummy error"))
+
+	s.Error(s.step.Execute(s.Ctx()), "dummy error")
+
+	s.MockRunner.AssertExpectations(s.T())
+	s.MockDocker.AssertExpectations(s.T())
 }
