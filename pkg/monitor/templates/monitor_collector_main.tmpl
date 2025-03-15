@@ -115,7 +115,7 @@ max_connections = 1
 
 [server.base.groups.listener]
 filter_list = []
-listen_port = 10000
+listen_port = {{ .Port }}
 listen_queue_depth = 4096
 rdma_listen_ethernet = true
 reuse_port = false
@@ -134,8 +134,8 @@ queue_capacity = 204800
 type = 'clickhouse'
 
 [server.monitor_collector.reporter.clickhouse]
-db = '{{ .Db }}'
-host = '{{ .Host }}'
-passwd = '{{ .Password }}'
-port = '{{ .Port }}'
-user = '{{ .User }}'
+db = '{{ .ClickhouseDb }}'
+host = '{{ .ClickhouseHost }}'
+passwd = '{{ .ClickhousePassword }}'
+port = '{{ .ClickhousePort }}'
+user = '{{ .ClickUser }}'

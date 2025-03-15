@@ -3,9 +3,9 @@ package clickhouse
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/open3fs/m3fs/pkg/common"
@@ -36,17 +36,19 @@ func (s *genClickhouseConfigStepSuite) SetupTest() {
 }
 
 func (s *genClickhouseConfigStepSuite) Test() {
+	s.MockLocalFS.On("MkdirTemp", os.TempDir(), "3fs-clickhouse.").
+		Return("/tmp/3fs-clickhouse.xxx", nil)
+	s.MockLocalFS.On("WriteFile", "/tmp/3fs-clickhouse.xxx/config.xml",
+		mock.AnythingOfType("[]uint8"), os.FileMode(0644)).Return(nil)
+	s.MockLocalFS.On("WriteFile", "/tmp/3fs-clickhouse.xxx/3fs-monitor.sql",
+		mock.AnythingOfType("[]uint8"), os.FileMode(0644)).Return(nil)
+
 	s.NoError(s.step.Execute(s.Ctx()))
 
 	tmpDirValue, ok := s.Runtime.Load("clickhouse_temp_config_dir")
 	s.True(ok)
 	tmpDir := tmpDirValue.(string)
-	s.Contains(tmpDir, "3fs-clickhouse.")
-	_, err := os.ReadFile(filepath.Join(tmpDir, "config.xml"))
-	s.NoError(err)
-	_, err = os.ReadFile(filepath.Join(tmpDir, "3fs-monitor.sql"))
-	s.NoError(err)
-	s.NoError(os.RemoveAll(tmpDir))
+	s.Equal("/tmp/3fs-clickhouse.xxx", tmpDir)
 }
 
 func TestStartContainerStep(t *testing.T) {

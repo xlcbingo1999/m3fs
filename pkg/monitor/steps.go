@@ -1,6 +1,7 @@
 package monitor
 
 import (
+	"bytes"
 	"context"
 	"embed"
 	"os"
@@ -37,7 +38,7 @@ type genMonitorConfigStep struct {
 }
 
 func (s *genMonitorConfigStep) Execute(context.Context) error {
-	tempDir, err := os.MkdirTemp(os.TempDir(), "3fs-monitor.")
+	tempDir, err := s.Runtime.LocalEm.FS.MkdirTemp(os.TempDir(), "3fs-monitor.")
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -48,16 +49,6 @@ func (s *genMonitorConfigStep) Execute(context.Context) error {
 	if err != nil {
 		return errors.Annotate(err, "parse monitor_collector_main.toml template")
 	}
-	configPath := filepath.Join(tempDir, fileName)
-	file, err := os.Create(configPath)
-	if err != nil {
-		return errors.Trace(err)
-	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			s.Logger.Warnf("Failed to close file %+v", err)
-		}
-	}()
 	var clickhouseHost string
 	for _, clickhouseNode := range s.Runtime.Services.Clickhouse.Nodes {
 		for _, node := range s.Runtime.Nodes {
@@ -66,15 +57,21 @@ func (s *genMonitorConfigStep) Execute(context.Context) error {
 			}
 		}
 	}
-	err = tmpl.Execute(file, map[string]string{
-		"Db":       s.Runtime.Services.Clickhouse.Db,
-		"Host":     clickhouseHost,
-		"Password": s.Runtime.Services.Clickhouse.Password,
-		"Port":     strconv.Itoa(s.Runtime.Services.Clickhouse.TCPPort),
-		"User":     s.Runtime.Services.Clickhouse.User,
+	data := new(bytes.Buffer)
+	err = tmpl.Execute(data, map[string]string{
+		"Port":               strconv.Itoa(s.Runtime.Services.Monitor.Port),
+		"ClickhouseDb":       s.Runtime.Services.Clickhouse.Db,
+		"ClickhouseHost":     clickhouseHost,
+		"ClickhousePassword": s.Runtime.Services.Clickhouse.Password,
+		"ClickhousePort":     strconv.Itoa(s.Runtime.Services.Clickhouse.TCPPort),
+		"ClickhouseUser":     s.Runtime.Services.Clickhouse.User,
 	})
 	if err != nil {
 		return errors.Annotate(err, "write monitor_collector_main.toml")
+	}
+	configPath := filepath.Join(tempDir, fileName)
+	if err = s.Runtime.LocalEm.FS.WriteFile(configPath, data.Bytes(), 0644); err != nil {
+		return errors.Trace(err)
 	}
 
 	return nil

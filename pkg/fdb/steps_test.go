@@ -54,7 +54,7 @@ func (s *genClusterFileContentStepSuite) TestGenClusterFileContentStep() {
 	s.Equal("test-cluster:test-cluster@1.1.1.1:4500,1.1.1.2:4500", contentI.(string))
 }
 
-func TestRuntContainerStep(t *testing.T) {
+func TestRunContainerStep(t *testing.T) {
 	suiteRun(t, &runContainerStepSuite{})
 }
 
