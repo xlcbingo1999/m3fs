@@ -103,8 +103,9 @@ type Storage struct {
 
 // Client is the 3fs client config definition
 type Client struct {
-	ContainerName string `yaml:"containerName"`
-	Nodes         []string
+	ContainerName  string `yaml:"containerName"`
+	Nodes          []string
+	HostMountpoint string `yaml:"hostMountpoint"`
 }
 
 // Services is the services config definition
@@ -267,6 +268,10 @@ func (c *Config) SetValidate(workDir string) error {
 		c.Services.Storage.DiskNumPerNode = 1
 	}
 
+	if c.Services.Client.HostMountpoint == "" {
+		return errors.New("services.client.hostMountpoint is required")
+	}
+
 	return nil
 }
 
@@ -324,7 +329,8 @@ func NewConfigWithDefaults() *Config {
 				ChainIDPrefix:       9,
 			},
 			Client: Client{
-				ContainerName: "3fs-client",
+				ContainerName:  "3fs-client",
+				HostMountpoint: "/mnt/3fs",
 			},
 		},
 	}

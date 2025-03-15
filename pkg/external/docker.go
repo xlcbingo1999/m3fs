@@ -57,6 +57,7 @@ type PublishArgs struct {
 type VolumeArgs struct {
 	Source string
 	Target string
+	Rshare *bool
 }
 
 func (de *dockerExternal) Run(ctx context.Context, args *RunArgs) (out string, err error) {
@@ -96,7 +97,11 @@ func (de *dockerExternal) Run(ctx context.Context, args *RunArgs) (out string, e
 		params = append(params, "-p", publishInfo)
 	}
 	for _, volumeArg := range args.Volumes {
-		params = append(params, "--volume", fmt.Sprintf("%s:%s", volumeArg.Source, volumeArg.Target))
+		volBind := fmt.Sprintf("%s:%s", volumeArg.Source, volumeArg.Target)
+		if volumeArg.Rshare != nil && *volumeArg.Rshare {
+			volBind += ":rshared"
+		}
+		params = append(params, "--volume", volBind)
 	}
 	params = append(params, args.Image)
 	if len(args.Command) > 0 {

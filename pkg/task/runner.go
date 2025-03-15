@@ -29,6 +29,26 @@ type Runtime struct {
 	LocalEm  *external.Manager
 }
 
+// LoadString load string value form sync map
+func (r *Runtime) LoadString(key any) (string, bool) {
+	valI, ok := r.Load(key)
+	if !ok {
+		return "", false
+	}
+
+	return valI.(string), true
+}
+
+// LoadInt load int value form sync map
+func (r *Runtime) LoadInt(key any) (int, bool) {
+	valI, ok := r.Load(key)
+	if !ok {
+		return 0, false
+	}
+
+	return valI.(int), true
+}
+
 // Runner is a task runner.
 type Runner struct {
 	tasks []Interface
