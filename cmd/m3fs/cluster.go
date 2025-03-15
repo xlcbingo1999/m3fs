@@ -15,6 +15,7 @@ import (
 	"github.com/open3fs/m3fs/pkg/meta"
 	"github.com/open3fs/m3fs/pkg/mgmtd"
 	"github.com/open3fs/m3fs/pkg/monitor"
+	"github.com/open3fs/m3fs/pkg/network"
 	"github.com/open3fs/m3fs/pkg/storage"
 	"github.com/open3fs/m3fs/pkg/task"
 )
@@ -66,6 +67,20 @@ var clusterCmd = &cli.Command{
 					Aliases:     []string{"w"},
 					Usage:       "Path to the working directory(default is current directory)",
 					Destination: &workDir,
+				},
+			},
+		},
+		{
+			Name:   "prepare",
+			Usage:  "prepare to deploy a 3fs cluster",
+			Action: prepareCluster,
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "config",
+					Aliases:     []string{"c"},
+					Usage:       "Path to the cluster configuration file",
+					Destination: &configFilePath,
+					Required:    true,
 				},
 			},
 		},
@@ -131,6 +146,22 @@ func deleteCluster(ctx *cli.Context) error {
 	runner.Init()
 	if err = runner.Run(ctx.Context); err != nil {
 		return errors.Annotate(err, "delete cluster")
+	}
+
+	return nil
+}
+
+func prepareCluster(ctx *cli.Context) error {
+	cfg, err := loadClusterConfig()
+	if err != nil {
+		return errors.Trace(err)
+	}
+	runner := task.NewRunner(cfg,
+		new(network.PrepareNetworkTask),
+	)
+	runner.Init()
+	if err = runner.Run(ctx.Context); err != nil {
+		return errors.Annotate(err, "prepare cluster")
 	}
 
 	return nil
