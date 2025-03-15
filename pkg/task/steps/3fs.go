@@ -350,7 +350,8 @@ func NewRm3FSContainerStepFunc(containerName, service, serviceWorkDir string) fu
 	}
 }
 
-func getMgmtdServerAddresses(r *task.Runtime) string {
+// GetMgmtdServerAddresses returns value of RuntimeMgmtdServerAddressesKey.
+func GetMgmtdServerAddresses(r *task.Runtime) string {
 	addrI, ok := r.Load(task.RuntimeMgmtdServerAddressesKey)
 	if !ok {
 		return ""
@@ -388,7 +389,7 @@ func (s *upload3FSMainConfigStep) Execute(ctx context.Context) error {
 			"/opt/3fs/bin/admin_cli",
 			"-cfg", "/opt/3fs/etc/admin_cli.toml",
 			"--config.mgmtd_client.mgmtd_server_addresses",
-			fmt.Sprintf("'%s'", getMgmtdServerAddresses(s.Runtime)),
+			fmt.Sprintf("'%s'", GetMgmtdServerAddresses(s.Runtime)),
 			fmt.Sprintf("'set-config --type %s --file /opt/3fs/etc/%s.toml'",
 				s.serviceType, s.service),
 		},

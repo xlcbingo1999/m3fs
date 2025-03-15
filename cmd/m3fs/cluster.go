@@ -101,6 +101,7 @@ func createCluster(ctx *cli.Context) error {
 		new(mgmtd.CreateMgmtdServiceTask),
 		new(meta.CreateMetaServiceTask),
 		new(storage.CreateStorageServiceTask),
+		new(mgmtd.InitUserAndChainTask),
 	)
 	runner.Init()
 	if err = runner.Run(ctx.Context); err != nil {

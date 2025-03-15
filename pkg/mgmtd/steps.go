@@ -16,6 +16,7 @@ import (
 	"github.com/open3fs/m3fs/pkg/external"
 	"github.com/open3fs/m3fs/pkg/image"
 	"github.com/open3fs/m3fs/pkg/task"
+	"github.com/open3fs/m3fs/pkg/task/steps"
 )
 
 var (
@@ -121,5 +122,147 @@ func (s *initClusterStep) Execute(ctx context.Context) error {
 		fmt.Sprintf(`[%s]`, strings.Join(address, ",")))
 
 	s.Logger.Infof("Cluster initialization success")
+	return nil
+}
+
+type initUserAndChainStep struct {
+	task.BaseStep
+}
+
+func (s *initUserAndChainStep) Execute(ctx context.Context) error {
+	token, err := s.initUser(ctx)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	if err = s.initChainFiles(ctx); err != nil {
+		return errors.Trace(err)
+	}
+	if err = s.uploadChainFiles(ctx, token); err != nil {
+		return errors.Trace(err)
+	}
+	return nil
+}
+
+func (s *initUserAndChainStep) initUser(ctx context.Context) (token string, err error) {
+	addr := steps.GetMgmtdServerAddresses(s.Runtime)
+	output, err := s.Em.Docker.Exec(ctx, s.Runtime.Services.Mgmtd.ContainerName,
+		"/opt/3fs/bin/admin_cli",
+		"-cfg", "/opt/3fs/etc/admin_cli.toml",
+		"--config.mgmtd_client.mgmtd_server_addresses", fmt.Sprintf(`'%s'`, addr),
+		`"user-add --root --admin 0 root"`,
+	)
+	if err != nil {
+		return "", errors.Annotate(err, "add user")
+	}
+	// Sample output:
+	// Uid                0
+	// Name               root
+	// Token              AAA8WCoB8QAt8bFw2wBupzjA(Expired at N/A)
+	// IsRootUser         true
+	// IsAdmin            true
+	// Gid                0
+	// SupplementaryGids
+	for _, line := range strings.Split(output, "\n") {
+		if !strings.HasPrefix(line, "Token") {
+			continue
+		}
+		parts := strings.Split(strings.TrimSpace(strings.TrimPrefix(line, "Token")), "(")
+		if len(parts) != 2 {
+			break
+		}
+		token = parts[0]
+		break
+	}
+	if token == "" {
+		return "", errors.Errorf("Unexpected output of user-add command: %s", output)
+	}
+
+	_, err = s.Em.Docker.Exec(ctx, s.Runtime.Services.Mgmtd.ContainerName,
+		"bash", "-c",
+		fmt.Sprintf(`"echo %s > /opt/3fs/etc/token.txt"`, token),
+	)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	s.Runtime.Store(task.RuntimeUserTokenKey, token)
+	return token, nil
+}
+
+func (s *initUserAndChainStep) initChainFiles(ctx context.Context) error {
+	output, err := s.Em.Docker.Exec(ctx, s.Runtime.Services.Mgmtd.ContainerName,
+		"python3", "/opt/3fs/data_placement/src/model/data_placement.py",
+		"-ql", "-relax", "-type", "CR",
+		"--num_nodes", strconv.Itoa(len(s.Runtime.Services.Storage.Nodes)),
+		"--replication_factor", strconv.Itoa(s.Runtime.Services.Storage.ReplicationFactor),
+		"--min_targets_per_disk", strconv.Itoa(s.Runtime.Services.Storage.MinTargetNumPerDisk),
+	)
+	if err != nil {
+		return errors.Annotatef(err, "run data_placement.py")
+	}
+	var dataPlacementDir string
+	for _, line := range strings.Split(output, "\n") {
+		if !strings.Contains(line, "saved solution to: ") {
+			continue
+		}
+		parts := strings.Split(line, " ")
+		dataPlacementDir = strings.TrimSpace(parts[len(parts)-1])
+	}
+	if dataPlacementDir == "" {
+		return errors.Errorf("Unexpected output of data_placement.py: %s", output)
+	}
+
+	_, err = s.Em.Docker.Exec(ctx, s.Runtime.Services.Mgmtd.ContainerName,
+		"python3", "/opt/3fs/data_placement/src/setup/gen_chain_table.py",
+		"--chain_table_type", "CR",
+		"--node_id_begin", "10001",
+		"--node_id_end", strconv.Itoa(10000+len(s.Runtime.Services.Storage.Nodes)),
+		"--num_disks_per_node", strconv.Itoa(s.Runtime.Services.Storage.DiskNumPerNode),
+		"--num_targets_per_disk", strconv.Itoa(s.Runtime.Services.Storage.TargetNumPerDisk),
+		"--target_id_prefix", strconv.Itoa(s.Runtime.Services.Storage.TargetIDPrefix),
+		"--chain_id_prefix", strconv.Itoa(s.Runtime.Services.Storage.ChainIDPrefix),
+		"--incidence_matrix_path", fmt.Sprintf("%s/incidence_matrix.pickle", dataPlacementDir),
+	)
+	if err != nil {
+		return errors.Annotatef(err, "run gen_chain_table.py")
+	}
+
+	return nil
+}
+
+func (s *initUserAndChainStep) uploadChainFiles(ctx context.Context, token string) error {
+	addr := steps.GetMgmtdServerAddresses(s.Runtime)
+	escapedAddr := strings.Replace(addr, `"`, `\"`, -1)
+	_, err := s.Em.Docker.Exec(ctx, s.Runtime.Services.Mgmtd.ContainerName,
+		"bash", "-c",
+		fmt.Sprintf(
+			`"/opt/3fs/bin/admin_cli --cfg /opt/3fs/etc/admin_cli.toml `+
+				`--config.mgmtd_client.mgmtd_server_addresses '%s' `+
+				`--config.user_info.token %s < output/create_target_cmd.txt"`,
+			escapedAddr, token),
+	)
+	if err != nil {
+		return errors.Annotatef(err, "create targets")
+	}
+	_, err = s.Em.Docker.Exec(ctx, s.Runtime.Services.Mgmtd.ContainerName,
+		"/opt/3fs/bin/admin_cli",
+		"--cfg", "/opt/3fs/etc/admin_cli.toml",
+		"--config.mgmtd_client.mgmtd_server_addresses", fmt.Sprintf(`'%s'`, addr),
+		"--config.user_info.token", token,
+		`"upload-chains output/generated_chains.csv"`,
+	)
+	if err != nil {
+		return errors.Annotatef(err, "upload-chains output/generated_chains.csv")
+	}
+	_, err = s.Em.Docker.Exec(ctx, s.Runtime.Services.Mgmtd.ContainerName,
+		"/opt/3fs/bin/admin_cli",
+		"--cfg", "/opt/3fs/etc/admin_cli.toml",
+		"--config.mgmtd_client.mgmtd_server_addresses", fmt.Sprintf(`'%s'`, addr),
+		"--config.user_info.token", token,
+		`"upload-chain-table --desc stage 1 output/generated_chain_table.csv"`,
+	)
+	if err != nil {
+		return errors.Annotatef(err, "upload-chain-table output/generated_chain_table.csv")
+	}
+
 	return nil
 }

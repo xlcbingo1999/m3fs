@@ -15,6 +15,7 @@ import (
 const (
 	RuntimeFdbClusterFileContentKey = "fdb_cluster_file_content"
 	RuntimeMgmtdServerAddressesKey  = "mgmtd_server_addresses"
+	RuntimeUserTokenKey             = "user_token"
 	RuntimeAdminCliTomlKey          = "admin_cli_toml"
 )
 
