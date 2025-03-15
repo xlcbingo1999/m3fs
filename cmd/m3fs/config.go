@@ -100,6 +100,7 @@ services:
     containerName: 3fs-fuseclient
     nodes: 
       - meta
+	  hostMountpoint: /mnt/3fs
 registry:
   customRegistry: ""
 `

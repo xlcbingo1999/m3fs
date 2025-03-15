@@ -184,3 +184,10 @@ func (s *configSuite) TestValidWithInvalidStorageDiskType() {
 
 	s.Error(cfg.SetValidate(""), "invalid disk type of storage service: invalid")
 }
+
+func (s *configSuite) TestValidWithNoClientMountPoint() {
+	cfg := s.newConfigWithDefaults()
+	cfg.Services.Client.HostMountpoint = ""
+
+	s.Error(cfg.SetValidate(""), "services.client.hostMountpoint is required")
+}

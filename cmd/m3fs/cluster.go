@@ -7,6 +7,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 
+	fsclient "github.com/open3fs/m3fs/pkg/3fs_client"
 	"github.com/open3fs/m3fs/pkg/clickhouse"
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
@@ -102,6 +103,7 @@ func createCluster(ctx *cli.Context) error {
 		new(meta.CreateMetaServiceTask),
 		new(storage.CreateStorageServiceTask),
 		new(mgmtd.InitUserAndChainTask),
+		new(fsclient.Create3FSClientServiceTask),
 	)
 	runner.Init()
 	if err = runner.Run(ctx.Context); err != nil {
@@ -118,6 +120,7 @@ func deleteCluster(ctx *cli.Context) error {
 	}
 
 	runner := task.NewRunner(cfg,
+		new(fsclient.Delete3FSClientServiceTask),
 		new(storage.DeleteStorageServiceTask),
 		new(meta.DeleteMetaServiceTask),
 		new(mgmtd.DeleteMgmtdServiceTask),

@@ -60,6 +60,12 @@ func NewGen3FSNodeIDStepFunc(service string, idBegin int, nodes []string) func()
 	}
 }
 
+// Extra3FSConfigFile defines extra config file that custom by specific task
+type Extra3FSConfigFile struct {
+	Data     []byte
+	FileName string
+}
+
 type prepare3FSConfigStep struct {
 	task.BaseStep
 
@@ -71,6 +77,7 @@ type prepare3FSConfigStep struct {
 	rdmaListenPort       int
 	tcpListenPort        int
 	extraMainTomlData    map[string]any
+	extraConfigFiles     []*Extra3FSConfigFile
 }
 
 func (s *prepare3FSConfigStep) Execute(ctx context.Context) error {
@@ -142,13 +149,8 @@ func (s *prepare3FSConfigStep) genConfig(path, tmplName string, tmpl []byte, tmp
 }
 
 func (s *prepare3FSConfigStep) genConfigs(tmpDir string) error {
-	nodeIDI, _ := s.Runtime.Load(getNodeIDKey(s.service, s.Node.Name))
-	nodeID := nodeIDI.(int)
-	var mgmtdServerAddresses string
-
-	if valI, ok := s.Runtime.Load(task.RuntimeMgmtdServerAddressesKey); ok {
-		mgmtdServerAddresses = valI.(string)
-	}
+	nodeID, _ := s.Runtime.LoadInt(getNodeIDKey(s.service, s.Node.Name))
+	mgmtdServerAddresses, _ := s.Runtime.LoadString(task.RuntimeMgmtdServerAddressesKey)
 
 	mainAppToml := path.Join(tmpDir, fmt.Sprintf("%s_app.toml", s.service))
 	mainLauncherToml := path.Join(tmpDir, fmt.Sprintf("%s_launcher.toml", s.service))
@@ -195,17 +197,25 @@ func (s *prepare3FSConfigStep) genConfigs(tmpDir string) error {
 
 	adminCliI, _ := s.Runtime.Load(task.RuntimeAdminCliTomlKey)
 	adminCliTomlData := adminCliI.([]byte)
+	s.Logger.Infof("Save admin cli config to %s", adminCliToml)
 	err := s.Runtime.LocalEm.FS.WriteFile(adminCliToml, adminCliTomlData, os.FileMode(0644))
 	if err != nil {
 		return errors.Trace(err)
+	}
+
+	for _, extraCfg := range s.extraConfigFiles {
+		filePath := path.Join(tmpDir, extraCfg.FileName)
+		s.Logger.Infof("Save %s to %s", extraCfg.FileName, filePath)
+		if err = s.Runtime.LocalEm.FS.WriteFile(filePath, extraCfg.Data, os.FileMode(0644)); err != nil {
+			return errors.Trace(err)
+		}
 	}
 
 	return nil
 }
 
 func (s *prepare3FSConfigStep) genFdbClusterFile(tmpDir string) error {
-	contentI, _ := s.Runtime.Load(task.RuntimeFdbClusterFileContentKey)
-	content := contentI.(string)
+	content, _ := s.Runtime.LoadString(task.RuntimeFdbClusterFileContentKey)
 
 	clusterFilePath := path.Join(tmpDir, "fdb.cluster")
 	s.Logger.Infof("Generating fdb.cluster to %s", clusterFilePath)
@@ -226,6 +236,7 @@ type Prepare3FSConfigStepSetup struct {
 	RDMAListenPort       int
 	TCPListenPort        int
 	ExtraMainTomlData    map[string]any
+	Extra3FSConfigFiles  []*Extra3FSConfigFile
 }
 
 // NewPrepare3FSConfigStepFunc is prepare 3fs config step factory func.
@@ -240,6 +251,7 @@ func NewPrepare3FSConfigStepFunc(setup *Prepare3FSConfigStepSetup) func() task.S
 			rdmaListenPort:       setup.RDMAListenPort,
 			tcpListenPort:        setup.TCPListenPort,
 			extraMainTomlData:    setup.ExtraMainTomlData,
+			extraConfigFiles:     setup.Extra3FSConfigFiles,
 		}
 	}
 }
@@ -397,10 +409,6 @@ func (s *upload3FSMainConfigStep) Execute(ctx context.Context) error {
 			{
 				Source: getConfigDir(s.serviceWorkDir),
 				Target: "/opt/3fs/etc/",
-			},
-			{
-				Source: "/dev",
-				Target: "/dev",
 			},
 		},
 	}

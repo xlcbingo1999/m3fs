@@ -47,12 +47,13 @@ func (s *dockerRunSuite) Test() {
 			{
 				Source: "/path/to/data",
 				Target: "/clickhouse/data",
+				Rshare: common.Pointer(true),
 			},
 		},
 	}
 	mockCmd := "docker run --name 3fs-clickhouse --detach --network host -e A=B --entrypoint '' --rm " +
 		"--privileged --ulimit nproc=65535:65535 -p 127.0.0.1:9000:9000/tcp " +
-		"--volume /path/to/data:/clickhouse/data clickhouse/clickhouse-server:latest ls"
+		"--volume /path/to/data:/clickhouse/data:rshared clickhouse/clickhouse-server:latest ls"
 	s.r.MockExec(mockCmd, "", nil)
 	_, err := s.em.Docker.Run(s.Ctx(), args)
 	s.NoError(err)

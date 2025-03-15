@@ -323,10 +323,6 @@ func (s *upload3FSMainConfigStepSuite) TestUploadConfig() {
 				Source: s.configDir,
 				Target: "/opt/3fs/etc/",
 			},
-			{
-				Source: "/dev",
-				Target: "/dev",
-			},
 		},
 	}).Return("", nil)
 
