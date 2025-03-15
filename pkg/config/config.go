@@ -87,13 +87,18 @@ type Meta struct {
 
 // Storage is the 3fs storage config definition
 type Storage struct {
-	ContainerName  string `yaml:"containerName"`
-	Nodes          []string
-	DiskType       DiskType
-	WorkDir        string `yaml:"workDir,omitempty"`
-	DiskNumPerNode int    `yaml:"diskNumPerNode,omitempty"`
-	RDMAListenPort int    `yaml:"rdmaListenPort,omitempty"`
-	TCPListenPort  int    `yaml:"tcpListenPort,omitempty"`
+	ContainerName       string `yaml:"containerName"`
+	Nodes               []string
+	WorkDir             string   `yaml:"workDir,omitempty"`
+	DiskType            DiskType `yaml:"diskType,omitempty"`
+	DiskNumPerNode      int      `yaml:"diskNumPerNode,omitempty"`
+	RDMAListenPort      int      `yaml:"rdmaListenPort,omitempty"`
+	TCPListenPort       int      `yaml:"tcpListenPort,omitempty"`
+	ReplicationFactor   int      `yaml:"replicationFactor,omitempty"`
+	MinTargetNumPerDisk int      `yaml:"minTargetNumPerDisk,omitempty"`
+	TargetNumPerDisk    int      `yaml:"targetNumPerDisk,omitempty"`
+	TargetIDPrefix      int      `yaml:"targetIDPrefix,omitempty"`
+	ChainIDPrefix       int      `yaml:"chainIDPrefix,omitempty"`
 }
 
 // Client is the 3fs client config definition
@@ -235,9 +240,7 @@ func (c *Config) SetValidate(workDir string) error {
 	if c.Services.Mgmtd.TCPListenPort == 0 {
 		c.Services.Mgmtd.TCPListenPort = 9000
 	}
-	if c.Services.Meta.WorkDir == "" {
-		c.Services.Meta.WorkDir = path.Join(workDir, "meta")
-	}
+
 	if c.Services.Meta.WorkDir == "" {
 		c.Services.Meta.WorkDir = path.Join(c.WorkDir, "meta")
 	}
@@ -252,7 +255,7 @@ func (c *Config) SetValidate(workDir string) error {
 		return errors.Errorf("invalid disk type of storage service: %s", c.Services.Storage.DiskType)
 	}
 	if c.Services.Storage.WorkDir == "" {
-		c.Services.Storage.WorkDir = path.Join(workDir, "storage")
+		c.Services.Storage.WorkDir = path.Join(c.WorkDir, "storage")
 	}
 	if c.Services.Storage.RDMAListenPort == 0 {
 		c.Services.Storage.RDMAListenPort = 8002
@@ -311,8 +314,14 @@ func NewConfigWithDefaults() *Config {
 				ContainerName: "3fs-meta",
 			},
 			Storage: Storage{
-				ContainerName: "3fs-storage",
-				DiskType:      DiskTypeNvme,
+				ContainerName:       "3fs-storage",
+				DiskType:            DiskTypeNvme,
+				ReplicationFactor:   2,
+				DiskNumPerNode:      1,
+				MinTargetNumPerDisk: 32,
+				TargetNumPerDisk:    32,
+				TargetIDPrefix:      1,
+				ChainIDPrefix:       9,
 			},
 			Client: Client{
 				ContainerName: "3fs-client",

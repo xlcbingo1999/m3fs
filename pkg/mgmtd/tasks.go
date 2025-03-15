@@ -85,3 +85,24 @@ func (t *DeleteMgmtdServiceTask) Init(r *task.Runtime) {
 		},
 	})
 }
+
+// InitUserAndChainTask is a task for initializing user and chain.
+type InitUserAndChainTask struct {
+	task.BaseTask
+}
+
+// Init initializes the task.
+func (t *InitUserAndChainTask) Init(r *task.Runtime) {
+	t.BaseTask.Init(r)
+	t.BaseTask.SetName("InitUserAndChainTask")
+	nodes := make([]config.Node, len(r.Cfg.Services.Mgmtd.Nodes))
+	for i, node := range r.Cfg.Services.Mgmtd.Nodes {
+		nodes[i] = r.Nodes[node]
+	}
+	t.SetSteps([]task.StepConfig{
+		{
+			Nodes:   []config.Node{nodes[0]},
+			NewStep: func() task.Step { return new(initUserAndChainStep) },
+		},
+	})
+}

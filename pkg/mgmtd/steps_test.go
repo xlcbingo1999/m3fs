@@ -1,6 +1,7 @@
 package mgmtd
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -93,4 +94,83 @@ func (s *initClusterStepSuite) TestInitCluster() {
 
 	s.MockRunner.AssertExpectations(s.T())
 	s.MockDocker.AssertExpectations(s.T())
+}
+
+func TestInitUserAndChainSuite(t *testing.T) {
+	suiteRun(t, &initUserAndChainStepSuite{})
+}
+
+type initUserAndChainStepSuite struct {
+	ttask.StepSuite
+
+	step *initUserAndChainStep
+}
+
+func (s *initUserAndChainStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.step = &initUserAndChainStep{}
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.Runtime.Store(task.RuntimeMgmtdServerAddressesKey, `["RDMA://10.16.28.58:8000"]`)
+}
+
+func (s *initUserAndChainStepSuite) Test() {
+	containerName := s.Runtime.Services.Mgmtd.ContainerName
+	s.MockDocker.On("Exec", containerName, "/opt/3fs/bin/admin_cli", []string{
+		"-cfg", "/opt/3fs/etc/admin_cli.toml",
+		"--config.mgmtd_client.mgmtd_server_addresses", `'["RDMA://10.16.28.58:8000"]'`,
+		`"user-add --root --admin 0 root"`,
+	}).Return(`Uid                0
+Name               root
+Token              AAA8WCoB8QAt8bFw2wBupzjA(Expired at N/A)
+IsRootUser         true
+IsAdmin            true
+Gid                0
+SupplementaryGids`, nil)
+	s.MockDocker.On("Exec", containerName, "bash", []string{
+		"-c",
+		`"echo AAA8WCoB8QAt8bFw2wBupzjA > /opt/3fs/etc/token.txt"`,
+	}).Return("", nil)
+
+	s.MockDocker.On("Exec", containerName, "python3", []string{
+		"/opt/3fs/data_placement/src/model/data_placement.py",
+		"-ql", "-relax", "-type", "CR",
+		"--num_nodes", strconv.Itoa(len(s.Runtime.Services.Storage.Nodes)),
+		"--replication_factor", strconv.Itoa(s.Runtime.Services.Storage.ReplicationFactor),
+		"--min_targets_per_disk", strconv.Itoa(s.Runtime.Services.Storage.MinTargetNumPerDisk),
+	}).Return(`2025-03-15 08:34:31.409 | INFO     | __main__:check_solution:332`+
+		`- total_traffic=64.0 max_total_traffic=64
+		2025-03-15 08:34:31.640 | SUCCESS  | __main__:run:148 - `+
+		`saved solution to: output/DataPlacementModel-v_2-b_32-r_32-k_2-λ_32-lb_1-ub_0`, nil)
+	s.MockDocker.On("Exec", containerName, "python3", []string{
+		"/opt/3fs/data_placement/src/setup/gen_chain_table.py",
+		"--chain_table_type", "CR",
+		"--node_id_begin", "10001",
+		"--node_id_end", strconv.Itoa(10000 + len(s.Runtime.Services.Storage.Nodes)),
+		"--num_disks_per_node", strconv.Itoa(s.Runtime.Services.Storage.DiskNumPerNode),
+		"--num_targets_per_disk", strconv.Itoa(s.Runtime.Services.Storage.TargetNumPerDisk),
+		"--target_id_prefix", strconv.Itoa(s.Runtime.Services.Storage.TargetIDPrefix),
+		"--chain_id_prefix", strconv.Itoa(s.Runtime.Services.Storage.ChainIDPrefix),
+		"--incidence_matrix_path", "output/DataPlacementModel-v_2-b_32-r_32-k_2-λ_32-lb_1-ub_0/incidence_matrix.pickle",
+	}).Return("", nil)
+	s.MockDocker.On("Exec", containerName, "bash", []string{
+		"-c",
+		`"/opt/3fs/bin/admin_cli --cfg /opt/3fs/etc/admin_cli.toml ` +
+			`--config.mgmtd_client.mgmtd_server_addresses '[\"RDMA://10.16.28.58:8000\"]' ` +
+			`--config.user_info.token AAA8WCoB8QAt8bFw2wBupzjA < output/create_target_cmd.txt"`,
+	}).Return("", nil)
+	s.MockDocker.On("Exec", containerName, "/opt/3fs/bin/admin_cli", []string{
+		"--cfg", "/opt/3fs/etc/admin_cli.toml",
+		"--config.mgmtd_client.mgmtd_server_addresses", `'["RDMA://10.16.28.58:8000"]'`,
+		"--config.user_info.token", "AAA8WCoB8QAt8bFw2wBupzjA",
+		`"upload-chains output/generated_chains.csv"`,
+	}).Return("", nil)
+	s.MockDocker.On("Exec", containerName, "/opt/3fs/bin/admin_cli", []string{
+		"--cfg", "/opt/3fs/etc/admin_cli.toml",
+		"--config.mgmtd_client.mgmtd_server_addresses", `'["RDMA://10.16.28.58:8000"]'`,
+		"--config.user_info.token", "AAA8WCoB8QAt8bFw2wBupzjA",
+		`"upload-chain-table --desc stage 1 output/generated_chain_table.csv"`,
+	}).Return("", nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
 }
