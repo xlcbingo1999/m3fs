@@ -87,9 +87,13 @@ type Meta struct {
 
 // Storage is the 3fs storage config definition
 type Storage struct {
-	ContainerName string `yaml:"containerName"`
-	Nodes         []string
-	DiskType      DiskType
+	ContainerName  string `yaml:"containerName"`
+	Nodes          []string
+	DiskType       DiskType
+	WorkDir        string `yaml:"workDir,omitempty"`
+	DiskNumPerNode int    `yaml:"diskNumPerNode,omitempty"`
+	RDMAListenPort int    `yaml:"rdmaListenPort,omitempty"`
+	TCPListenPort  int    `yaml:"tcpListenPort,omitempty"`
 }
 
 // Client is the 3fs client config definition
@@ -158,9 +162,55 @@ func (c *Config) SetValidate(workDir string) error {
 			c.Nodes[i].Port = 22
 		}
 	}
-	if err := c.validServiceNodes("fdb", c.Services.Fdb.Nodes, nodeSet, true); err != nil {
-		return errors.Trace(err)
+
+	validSettings := []struct {
+		name    string
+		nodes   []string
+		require bool
+	}{
+		{
+			"fdb",
+			c.Services.Fdb.Nodes,
+			true,
+		},
+		{
+			"clickhouse",
+			c.Services.Clickhouse.Nodes,
+			true,
+		},
+		{
+			"monitor",
+			c.Services.Monitor.Nodes,
+			true,
+		},
+		{
+			"mgmtd",
+			c.Services.Mgmtd.Nodes,
+			true,
+		},
+		{
+			"meta",
+			c.Services.Mgmtd.Nodes,
+			true,
+		},
+		{
+			"storage",
+			c.Services.Storage.Nodes,
+			true,
+		},
+		{
+			"client",
+			c.Services.Client.Nodes,
+			false,
+		},
 	}
+
+	for _, s := range validSettings {
+		if err := c.validServiceNodes(s.name, s.nodes, nodeSet, s.require); err != nil {
+			return errors.Trace(err)
+		}
+	}
+
 	if c.Services.Fdb.Port == 0 {
 		c.Services.Fdb.Port = 4500
 	}
@@ -168,23 +218,14 @@ func (c *Config) SetValidate(workDir string) error {
 		c.Services.Fdb.WorkDir = path.Join(c.WorkDir, "fdb")
 	}
 
-	if err := c.validServiceNodes("clickhouse", c.Services.Clickhouse.Nodes, nodeSet, true); err != nil {
-		return errors.Trace(err)
-	}
 	if c.Services.Clickhouse.WorkDir == "" {
 		c.Services.Clickhouse.WorkDir = path.Join(c.WorkDir, "clickhouse")
 	}
 
-	if err := c.validServiceNodes("monitor", c.Services.Monitor.Nodes, nodeSet, true); err != nil {
-		return errors.Trace(err)
-	}
 	if c.Services.Monitor.WorkDir == "" {
 		c.Services.Monitor.WorkDir = path.Join(c.WorkDir, "monitor")
 	}
 
-	if err := c.validServiceNodes("mgmtd", c.Services.Mgmtd.Nodes, nodeSet, true); err != nil {
-		return errors.Trace(err)
-	}
 	if c.Services.Mgmtd.WorkDir == "" {
 		c.Services.Mgmtd.WorkDir = path.Join(c.WorkDir, "mgmtd")
 	}
@@ -194,9 +235,8 @@ func (c *Config) SetValidate(workDir string) error {
 	if c.Services.Mgmtd.TCPListenPort == 0 {
 		c.Services.Mgmtd.TCPListenPort = 9000
 	}
-
-	if err := c.validServiceNodes("meta", c.Services.Meta.Nodes, nodeSet, true); err != nil {
-		return errors.Trace(err)
+	if c.Services.Meta.WorkDir == "" {
+		c.Services.Meta.WorkDir = path.Join(workDir, "meta")
 	}
 	if c.Services.Meta.WorkDir == "" {
 		c.Services.Meta.WorkDir = path.Join(c.WorkDir, "meta")
@@ -208,15 +248,20 @@ func (c *Config) SetValidate(workDir string) error {
 		c.Services.Meta.TCPListenPort = 9001
 	}
 
-	if err := c.validServiceNodes("storage", c.Services.Storage.Nodes, nodeSet, true); err != nil {
-		return errors.Trace(err)
-	}
 	if !diskTypes.Contains(c.Services.Storage.DiskType) {
 		return errors.Errorf("invalid disk type of storage service: %s", c.Services.Storage.DiskType)
 	}
-
-	if err := c.validServiceNodes("client", c.Services.Client.Nodes, nodeSet, false); err != nil {
-		return errors.Trace(err)
+	if c.Services.Storage.WorkDir == "" {
+		c.Services.Storage.WorkDir = path.Join(workDir, "storage")
+	}
+	if c.Services.Storage.RDMAListenPort == 0 {
+		c.Services.Storage.RDMAListenPort = 8002
+	}
+	if c.Services.Storage.TCPListenPort == 0 {
+		c.Services.Storage.TCPListenPort = 9002
+	}
+	if c.Services.Storage.DiskNumPerNode == 0 {
+		c.Services.Storage.DiskNumPerNode = 1
 	}
 
 	return nil

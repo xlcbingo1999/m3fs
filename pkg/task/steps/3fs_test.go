@@ -146,6 +146,8 @@ func (s *prepare3FSConfigStepSuite) testPrepareConfig(removeAllErr error) {
 	s.mockGenConfig(tmpDir+"/admin_cli.toml", adminCli)
 	s.MockLocalFS.On("WriteFile", tmpDir+"/fdb.cluster", []byte(s.fdbContent), os.FileMode(0644)).
 		Return(nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.Runtime.Services.Mgmtd.WorkDir}).
+		Return("", nil)
 	s.MockRunner.On("Scp", tmpDir, s.Cfg.Services.Mgmtd.WorkDir+"/config.d").Return(nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
@@ -179,8 +181,13 @@ func (s *run3FSContainerStepSuite) SetupTest() {
 	s.Cfg.Services.Mgmtd.WorkDir = "/var/mgmtd"
 	s.configDir = "/var/mgmtd/config.d"
 	s.SetupRuntime()
-	s.step = NewRun3FSContainerStepFunc("3fs", s.Cfg.Services.Mgmtd.ContainerName,
-		"mgmtd_main", s.Cfg.Services.Mgmtd.WorkDir)().(*run3FSContainerStep)
+	s.step = NewRun3FSContainerStepFunc(
+		&Run3FSContainerStepSetup{
+			ImgName:       "3fs",
+			ContainerName: s.Runtime.Services.Mgmtd.ContainerName,
+			Service:       "mgmtd_main",
+			WorkDir:       s.Runtime.Services.Mgmtd.WorkDir,
+		})().(*run3FSContainerStep)
 	s.step.Init(s.Runtime, s.MockEm, config.Node{})
 	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, "xxxx")
 }
@@ -206,10 +213,6 @@ func (s *run3FSContainerStepSuite) TestRunContainer() {
 			{
 				Source: s.configDir,
 				Target: "/opt/3fs/etc/",
-			},
-			{
-				Source: "/dev",
-				Target: "/dev",
 			},
 		},
 	}).Return("", nil)
@@ -295,7 +298,7 @@ func (s *upload3FSMainConfigStepSuite) SetupTest() {
 	s.Runtime.Store(task.RuntimeMgmtdServerAddressesKey, `["RDMA://1.1.1.1:8000"]`)
 }
 
-func (s *upload3FSMainConfigStepSuite) TestRunContainer() {
+func (s *upload3FSMainConfigStepSuite) TestUploadConfig() {
 	img, err := image.GetImage(s.Runtime.Cfg.Registry.CustomRegistry, "3fs")
 	s.NoError(err)
 	s.MockDocker.On("Run", &external.RunArgs{
@@ -331,4 +334,79 @@ func (s *upload3FSMainConfigStepSuite) TestRunContainer() {
 
 	s.MockRunner.AssertExpectations(s.T())
 	s.MockDocker.AssertExpectations(s.T())
+}
+
+func TestRemoteRunScriptStepSuite(t *testing.T) {
+	suiteRun(t, &remoteRunScriptStepSuite{})
+}
+
+type remoteRunScriptStepSuite struct {
+	ttask.StepSuite
+
+	step       *remoteRunScriptStep
+	node       config.Node
+	fdbContent string
+}
+
+func (s *remoteRunScriptStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.Cfg.Nodes = []config.Node{
+		{
+			Name: "node1",
+			Host: "1.1.1.1",
+		},
+	}
+	s.Cfg.Name = "test-cluster"
+	s.node = s.Cfg.Nodes[0]
+	s.Cfg.Services.Storage.Nodes = []string{"node1"}
+	s.Cfg.Services.Storage.WorkDir = "/root"
+	s.Cfg.Services.Storage.TCPListenPort = 9000
+	s.Cfg.Services.Storage.RDMAListenPort = 8000
+	s.SetupRuntime()
+
+	s.step = NewRemoteRunScriptStepFunc(
+		s.Cfg.Services.Storage.WorkDir,
+		"test123",
+		[]byte("ls -al"),
+		[]string{
+			"a", "b",
+		},
+	)().(*remoteRunScriptStep)
+	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0])
+	s.Runtime.Store(getNodeIDKey("storage_main", s.Cfg.Nodes[0].Name), 1)
+	s.fdbContent = "xxxx,xxxxx,xxxx"
+	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, s.fdbContent)
+	s.Runtime.Store(task.RuntimeAdminCliTomlKey, []byte("admin_cli"))
+}
+
+func (s *remoteRunScriptStepSuite) testPrepareConfig(removeAllErr error) {
+	s.MockLocalFS.On("MkdirAll", s.Runtime.Services.Storage.WorkDir).Return(nil)
+	tmpDir := "/root/tmp..."
+	s.MockLocalFS.On("MkdirTemp", s.Runtime.Services.Storage.WorkDir, s.node.Name+".*").
+		Return(tmpDir, nil)
+	s.MockLocalFS.On("RemoveAll", tmpDir).Return(removeAllErr)
+	tmpFilePath := tmpDir + "/tmp_script.sh"
+	s.MockLocalFS.On("WriteFile", tmpFilePath, []byte("ls -al"), os.FileMode(0775)).
+		Return(nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.Cfg.Services.Storage.WorkDir}).
+		Return("", nil)
+	s.MockRunner.On("Exec", "mktemp", []string{"-p", s.Cfg.Services.Storage.WorkDir}).
+		Return(tmpFilePath, nil)
+	s.MockRunner.On("Scp", tmpFilePath, tmpFilePath).Return(nil)
+	s.MockRunner.On("Exec", "bash", []string{tmpFilePath, "a", "b"}).Return("", nil)
+	s.MockRunner.On("Exec", "rm", []string{"-f", tmpFilePath}).Return("", nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	s.MockLocalFS.AssertExpectations(s.T())
+	s.MockRunner.AssertExpectations(s.T())
+}
+
+func (s *remoteRunScriptStepSuite) TestRun() {
+	s.testPrepareConfig(nil)
+}
+
+func (s *remoteRunScriptStepSuite) TestRunWithRmFailed() {
+	s.testPrepareConfig(errors.New("dummy error"))
 }

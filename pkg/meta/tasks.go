@@ -56,10 +56,14 @@ func (t *CreateMetaServiceTask) Init(r *task.Runtime) {
 		{
 			Nodes:    nodes,
 			Parallel: true,
-			NewStep: steps.NewRun3FSContainerStepFunc("3fs",
-				r.Services.Meta.ContainerName,
-				ServiceName,
-				r.Services.Meta.WorkDir),
+			NewStep: steps.NewRun3FSContainerStepFunc(
+				&steps.Run3FSContainerStepSetup{
+					ImgName:       "3fs",
+					ContainerName: r.Services.Meta.ContainerName,
+					Service:       ServiceName,
+					WorkDir:       r.Services.Meta.WorkDir,
+				},
+			),
 		},
 	})
 }
@@ -79,7 +83,8 @@ func (t *DeleteMetaServiceTask) Init(r *task.Runtime) {
 	}
 	t.SetSteps([]task.StepConfig{
 		{
-			Nodes: nodes,
+			Nodes:    nodes,
+			Parallel: true,
 			NewStep: steps.NewRm3FSContainerStepFunc(
 				r.Services.Meta.ContainerName,
 				ServiceName,

@@ -57,6 +57,10 @@ func (s *configSuite) newConfigWithDefaults() *Config {
 	cfg.Services.Meta.WorkDir = "/rootxx/meta"
 	cfg.Services.Meta.RDMAListenPort = 8011
 	cfg.Services.Meta.TCPListenPort = 9301
+	cfg.Services.Storage.WorkDir = "/root/storage"
+	cfg.Services.Storage.RDMAListenPort = 8092
+	cfg.Services.Storage.TCPListenPort = 9072
+	cfg.Services.Storage.DiskNumPerNode = 3
 
 	return cfg
 }
@@ -71,8 +75,12 @@ func (s *configSuite) TestValidateConfig() {
 	cfg.Services.Mgmtd.RDMAListenPort = 8000
 	cfg.Services.Mgmtd.TCPListenPort = 9000
 	cfg.Services.Meta.WorkDir = "/root/meta"
-	cfg.Services.Meta.RDMAListenPort = 8001
-	cfg.Services.Meta.TCPListenPort = 9001
+	cfg.Services.Meta.RDMAListenPort = 8701
+	cfg.Services.Meta.TCPListenPort = 9091
+	cfg.Services.Storage.WorkDir = "/root/storage"
+	cfg.Services.Storage.RDMAListenPort = 8702
+	cfg.Services.Storage.TCPListenPort = 9092
+	cfg.Services.Storage.DiskNumPerNode = 3
 	cfg.Nodes[0].Port = 123
 	cfgExp := *cfg
 

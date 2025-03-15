@@ -1,0 +1,132 @@
+#!/bin/bash
+set -ex
+
+if [ "$#" -lt 4 ]; then
+        echo "Usage: $0 <mount_dir> <disk_num> <disk_type> <action>"
+        exit 1
+fi
+
+MOUNT_DIR="$1/3fsdata"
+DISK_NUM=$2
+DISK_TYPE=$3
+ACTION=$4
+mkdir -p $MOUNT_DIR
+
+function prepare_dir_disk() {
+        for i in $(seq 0 $((DISK_NUM-1))); do
+                MOUNT_POINT="${MOUNT_DIR}/data${i}"
+                mkdir -p ${MOUNT_POINT}
+                mkdir -p ${MOUNT_POINT}/3fs
+        done
+}
+
+function clear_dir_disk() {
+        for i in $(seq 0 $((DISK_NUM-1))); do
+                MOUNT_POINT="${MOUNT_DIR}/data${i}"
+                rm -rf ${MOUNT_POINT}
+        done
+        rm -r ${MOUNT_DIR}
+}
+
+function prepare_nvme_disk() {
+        # Find NVMe disks
+        NVME_DISKS=()
+        for disk in $(lsblk -d -n -o NAME,TYPE,SIZE | grep -i "nvme" | grep -i "disk" | awk '{print $1}');do
+                # Check if disk is already mounted
+                if grep -q "/dev/${disk}" /proc/mounts; then
+                        echo "Disk ${disk} is already mounted. Skipping..."
+                        continue
+                fi
+                NVME_DISKS+=($disk)
+        done
+        
+        if [[ -z "${NVME_DISKS}" ]]; then
+                echo "No NVMe disks found!"
+                exit 1
+        fi
+        
+        if [[ ${DISK_NUM} -gt ${#NVME_DISKS[@]} ]]; then
+                echo "Number of disks(${DISK_NUM}) requested is greater than available NVMe disks(${#NVME_DISKS[@]})!"
+                exit 1
+        fi
+        NVME_DISKS=("${NVME_DISKS[@]:0:${DISK_NUM}}")
+        
+        # Format and mount each NVMe disk
+        ID=0
+        for DISK in ${NVME_DISKS[@]}; do
+                DISK_PATH="/dev/${DISK}"
+                MOUNT_POINT="${MOUNT_DIR}/data${ID}"
+        
+                echo "Processing disk: ${DISK_PATH}"
+        
+                # Check if disk is already formatted with XFS
+                if blkid -s TYPE -o value ${DISK_PATH} | grep -q "xfs"; then
+                        echo "Disk ${DISK_PATH} is already formatted with XFS."
+                else
+                        echo "Formatting ${DISK_PATH} with XFS..."
+                        mkfs.xfs -f -L "3fs-data-${ID}" ${DISK_PATH}
+                fi
+        
+                # Create mount point
+                mkdir -p ${MOUNT_POINT}
+        
+                # Mount disk
+                echo "Mounting ${DISK_PATH} to ${MOUNT_POINT}..."
+                mount -t xfs ${DISK_PATH} ${MOUNT_POINT}
+                mkdir -p ${MOUNT_POINT}/3fs
+        
+                echo "Disk ${DISK_PATH} successfully mounted at ${MOUNT_POINT}"
+                ID=$((ID + 1))
+        done
+        
+        echo "All NVMe disks have been processed."
+        echo "Total disks mounted: ${ID}"
+        
+        # List all mounted disks for verification
+        echo "Mounted disks:"
+        df -h | grep "${MOUNT_DIR}"
+}
+
+function clear_nvme_disk() {
+        # Unmount and clear each NVMe disk
+        for i in $(seq 0 $((DISK_NUM-1))); do
+                MOUNT_POINT="${MOUNT_DIR}/data${i}"
+        
+                rm -rf ${MOUNT_POINT}/3fs
+                # Check if disk is already mounted
+                if grep -q "${MOUNT_POINT}" /proc/mounts; then
+                        echo "Unmounting ${MOUNT_POINT}..."
+                        umount ${MOUNT_POINT}
+                else
+                        echo "${MOUNT_POINT} is not mounted. Skipping..."
+                fi
+        
+                # Clear mount point
+                rm -rf ${MOUNT_POINT}
+        
+                echo "${MOUNT_DIR} successfully unmounted and cleared."
+        done
+        rm -r ${MOUNT_DIR}
+        
+        echo "All NVMe disks have been processed."
+}
+
+if [[ "${DISK_TYPE}" == "NVMe" ]]; then
+        if [[ "${ACTION}" == "prepare" ]]; then
+                prepare_nvme_disk
+        elif [[ "${ACTION}" == "clear" ]]; then
+                clear_nvme_disk
+        else
+                echo "Invalid action: ${ACTION}"
+                exit 1
+        fi
+else
+        if [[ "${ACTION}" == "prepare" ]]; then
+                prepare_dir_disk
+        elif [[ "${ACTION}" == "clear" ]]; then
+                clear_dir_disk
+        else
+                echo "Invalid action: ${ACTION}"
+                exit 1
+        fi
+fi
