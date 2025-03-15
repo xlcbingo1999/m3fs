@@ -1,7 +1,6 @@
 package external_test
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -9,8 +8,7 @@ import (
 )
 
 // ExecCheckFunc is the type of check function for Exec.
-type ExecCheckFunc func(mr *MockedRunner, command string, args ...string) (
-	*bytes.Buffer, error)
+type ExecCheckFunc func(mr *MockedRunner, command string, args ...string) (string, error)
 
 // MockedExecResult mocks result of the Exec func
 type MockedExecResult struct {
@@ -171,9 +169,7 @@ func (mr *MockedRunner) CalledExecCount(cmdPrefix string) int {
 }
 
 // Exec executes a command.
-func (mr *MockedRunner) Exec(ctx context.Context, command string, args ...string) (
-	*bytes.Buffer, error) {
-
+func (mr *MockedRunner) Exec(ctx context.Context, command string, args ...string) (string, error) {
 	cmdLine := strings.Join(append([]string{command}, args...), " ")
 	mr.t.Logf("Processing: %s", cmdLine)
 	for cmdPrefix, results := range mr.execResults {
@@ -199,10 +195,10 @@ func (mr *MockedRunner) Exec(ctx context.Context, command string, args ...string
 		if result.checkFunc != nil {
 			return result.checkFunc(mr, command, args...)
 		}
-		return bytes.NewBufferString(result.value), result.err
+		return result.value, result.err
 	}
 
-	return nil, fmt.Errorf("Unknown cmd: %s", cmdLine)
+	return "", fmt.Errorf("Unknown cmd: %s", cmdLine)
 }
 
 // Add add mocked command prefix

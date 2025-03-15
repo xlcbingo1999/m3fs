@@ -1,7 +1,6 @@
 package monitor
 
 import (
-	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
@@ -69,8 +68,8 @@ func (s *runContainerStepSuite) SetupTest() {
 func (s *runContainerStepSuite) Test() {
 	etcDir := "/root/3fs/monitor/etc"
 	logDir := "/root/3fs/monitor/log"
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", etcDir}).Return(new(bytes.Buffer), nil)
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", logDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", etcDir}).Return("", nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", logDir}).Return("", nil)
 	s.MockRunner.On("Scp", "/tmp/3f-monitor.xxx/monitor_collector_main.toml",
 		"/root/3fs/monitor/etc/monitor_collector_main.toml").Return(nil)
 	img, err := image.GetImage("", "3fs")
@@ -96,7 +95,7 @@ func (s *runContainerStepSuite) Test() {
 			"--cfg",
 			"/opt/3fs/etc/monitor_collector_main.toml",
 		},
-	}).Return(new(bytes.Buffer), nil)
+	}).Return("", nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
@@ -127,10 +126,9 @@ func (s *rmContainerStepSuite) SetupTest() {
 }
 
 func (s *rmContainerStepSuite) TestRmContainerStep() {
-	s.MockDocker.On("Rm", s.Cfg.Services.Monitor.ContainerName, true).
-		Return(new(bytes.Buffer), nil)
-	s.MockRunner.On("Exec", "rm", []string{"-rf", s.etcDir}).Return(new(bytes.Buffer), nil)
-	s.MockRunner.On("Exec", "rm", []string{"-rf", s.logDir}).Return(new(bytes.Buffer), nil)
+	s.MockDocker.On("Rm", s.Cfg.Services.Monitor.ContainerName, true).Return("", nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.etcDir}).Return("", nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.logDir}).Return("", nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 

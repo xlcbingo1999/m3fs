@@ -1,7 +1,6 @@
 package external
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"net"
@@ -21,7 +20,7 @@ import (
 
 // RunnerInterface is the interface for running command.
 type RunnerInterface interface {
-	Exec(ctx context.Context, command string, args ...string) (*bytes.Buffer, error)
+	Exec(ctx context.Context, command string, args ...string) (string, error)
 	Scp(local, remote string) error
 }
 
@@ -34,28 +33,25 @@ type RemoteRunner struct {
 }
 
 // Exec executes a command.
-func (r *RemoteRunner) Exec(ctx context.Context, command string, args ...string) (
-	*bytes.Buffer, error) {
-
+func (r *RemoteRunner) Exec(ctx context.Context, command string, args ...string) (string, error) {
 	session, err := r.newSession()
 	if err != nil {
-		return nil, errors.Trace(err)
+		return "", errors.Trace(err)
 	}
 	defer func() {
-		if err := session.Close(); err != nil {
+		if err := session.Close(); err != nil && !errors.Is(err, io.EOF) {
 			r.log.Warnf("Failed to close session: %v", err)
 		}
 	}()
 
 	cmdStr := strings.Join(append([]string{command}, args...), " ")
 	r.log.Debugf("Run command: %s", cmdStr)
-	var output bytes.Buffer
-	session.Stdout = &output
-	if err := session.Run(cmdStr); err != nil {
-		r.log.Debugf("Run command failed, output: %s", output.String())
-		return nil, errors.Trace(err)
+	output, err := session.CombinedOutput(cmdStr)
+	if err != nil {
+		r.log.Debugf("Run command failed, output: %s", string(output))
+		return "", errors.Trace(err)
 	}
-	return &output, nil
+	return string(output), nil
 }
 
 func (r *RemoteRunner) newSession() (*ssh.Session, error) {

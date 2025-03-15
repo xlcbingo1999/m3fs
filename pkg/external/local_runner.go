@@ -20,8 +20,8 @@ type LocalRunner struct {
 }
 
 // Exec executes a command.
-func (r *LocalRunner) Exec(ctx context.Context, command string, args ...string) (*bytes.Buffer, error) {
-	checkErr := func(err error, errOut *bytes.Buffer) RunError {
+func (r *LocalRunner) Exec(ctx context.Context, command string, args ...string) (string, error) {
+	checkErr := func(err error, errOut string) RunError {
 		switch err {
 		case context.Canceled:
 			return NewRunError(int(syscall.ECANCELED), "process canceled")
@@ -53,10 +53,10 @@ func (r *LocalRunner) Exec(ctx context.Context, command string, args ...string) 
 	cmd.Stderr = errOut
 	err := r.runCtx(ctx, cmd)
 	if err != nil {
-		return out, checkErr(err, errOut)
+		return out.String(), checkErr(err, errOut.String())
 	}
 
-	return out, nil
+	return out.String(), nil
 }
 
 // Scp copy local file or dir to remote host.

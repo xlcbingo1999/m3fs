@@ -1,7 +1,6 @@
 package external
 
 import (
-	"bytes"
 	"context"
 
 	"github.com/stretchr/testify/mock"
@@ -16,15 +15,13 @@ type MockRunner struct {
 }
 
 // Exec mock.
-func (m *MockRunner) Exec(ctx context.Context, cmd string, args ...string) (
-	out *bytes.Buffer, err error) {
-
+func (m *MockRunner) Exec(ctx context.Context, cmd string, args ...string) (string, error) {
 	arg := m.Called(cmd, args)
 	err1 := arg.Error(1)
 	if err1 != nil {
-		return nil, err1
+		return "", err1
 	}
-	return arg.Get(0).(*bytes.Buffer), nil
+	return arg.String(0), nil
 }
 
 // Scp mock.

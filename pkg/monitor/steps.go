@@ -133,7 +133,8 @@ func (s *runContainerStep) Execute(ctx context.Context) error {
 		return errors.Trace(err)
 	}
 
-	s.Logger.Infof("Start monitor container success")
+	s.Logger.Infof("Started monitor container %s successfully",
+		s.Runtime.Services.Monitor.ContainerName)
 	return nil
 }
 
@@ -149,17 +150,19 @@ func (s *rmContainerStep) Execute(ctx context.Context) error {
 		return errors.Trace(err)
 	}
 	etcDir := path.Join(s.Runtime.Services.Monitor.WorkDir, "etc")
-	s.Logger.Infof("Remove monitor container etc dir %s", etcDir)
 	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", etcDir)
 	if err != nil {
 		return errors.Annotatef(err, "rm %s", etcDir)
 	}
+	s.Logger.Infof("Removed monitor container etc dir %s", etcDir)
+
 	logDir := path.Join(s.Runtime.Services.Monitor.WorkDir, "log")
-	s.Logger.Infof("Remove monitor container log dir %s", logDir)
 	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", logDir)
 	if err != nil {
 		return errors.Annotatef(err, "rm %s", logDir)
 	}
-	s.Logger.Infof("Monitor container %s successfully removed", containerName)
+	s.Logger.Infof("Removed monitor container log dir %s", logDir)
+
+	s.Logger.Infof("Removed monitor container %s successfully", containerName)
 	return nil
 }

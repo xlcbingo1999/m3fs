@@ -242,7 +242,7 @@ type run3FSContainerStep struct {
 }
 
 func (s *run3FSContainerStep) Execute(ctx context.Context) error {
-	s.Logger.Infof("Start %s container", s.service)
+	s.Logger.Infof("Starting %s container %s", s.service, s.containerName)
 	img, err := image.GetImage(s.Runtime.Cfg.Registry.CustomRegistry, s.imgName)
 	if err != nil {
 		return errors.Trace(err)
@@ -277,7 +277,7 @@ func (s *run3FSContainerStep) Execute(ctx context.Context) error {
 		return errors.Trace(err)
 	}
 
-	s.Logger.Infof("Start %s container success", s.service)
+	s.Logger.Infof("Started %s container %s successfully", s.service, s.containerName)
 	return nil
 }
 
@@ -302,20 +302,20 @@ type rm3FSContainerStep struct {
 }
 
 func (s *rm3FSContainerStep) Execute(ctx context.Context) error {
-	s.Logger.Infof("Remove %s container %s", s.service, s.containerName)
+	s.Logger.Infof("Removing %s container %s", s.service, s.containerName)
 	_, err := s.Em.Docker.Rm(ctx, s.containerName, true)
 	if err != nil {
 		return errors.Trace(err)
 	}
 
 	configDir := getConfigDir(s.serviceWorkDir)
-	s.Logger.Infof("Remove %s container config dir %s", s.serviceWorkDir, configDir)
 	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", configDir)
 	if err != nil {
 		return errors.Annotatef(err, "rm %s", configDir)
 	}
+	s.Logger.Infof("Removed %s container config dir %s", s.serviceWorkDir, configDir)
 
-	s.Logger.Infof("Service %s container %s successfully removed", s.service, s.containerName)
+	s.Logger.Infof("Removed %s container %s successfully", s.service, s.containerName)
 	return nil
 }
 

@@ -1,7 +1,6 @@
 package clickhouse
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -73,10 +72,10 @@ func (s *startContainerStepSuite) TestStartContainerStep() {
 	logDir := "/root/3fs/clickhouse/log"
 	configDir := "/root/3fs/clickhouse/config.d"
 	sqlDir := "/root/3fs/clickhouse/sql"
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", dataDir}).Return(new(bytes.Buffer), nil)
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", logDir}).Return(new(bytes.Buffer), nil)
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", configDir}).Return(new(bytes.Buffer), nil)
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", sqlDir}).Return(new(bytes.Buffer), nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", dataDir}).Return("", nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", logDir}).Return("", nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", configDir}).Return("", nil)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", sqlDir}).Return("", nil)
 	s.MockRunner.On("Scp", "/tmp/3f-clickhouse.xxx/config.xml",
 		"/root/3fs/clickhouse/config.d/config.xml").Return(nil)
 	s.MockRunner.On("Scp", "/tmp/3f-clickhouse.xxx/3fs-monitor.sql",
@@ -110,7 +109,7 @@ func (s *startContainerStepSuite) TestStartContainerStep() {
 				Target: "/tmp/sql",
 			},
 		},
-	}).Return(new(bytes.Buffer), nil)
+	}).Return("", nil)
 
 	s.NotNil(s.step)
 	s.NoError(s.step.Execute(s.Ctx()))
@@ -143,7 +142,7 @@ func (s *initClusterStepSuite) TestInit() {
 			fmt.Sprintf(`"clickhouse-client --port %d -n < /tmp/sql/3fs-monitor.sql"`,
 				s.Runtime.Services.Clickhouse.TCPPort),
 		}).
-		Return(new(bytes.Buffer), nil)
+		Return("", nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
@@ -177,12 +176,11 @@ func (s *rmContainerStepSuite) SetupTest() {
 }
 
 func (s *rmContainerStepSuite) TestRmContainerStep() {
-	s.MockDocker.On("Rm", s.Cfg.Services.Clickhouse.ContainerName, true).
-		Return(new(bytes.Buffer), nil)
-	s.MockRunner.On("Exec", "rm", []string{"-rf", s.dataDir}).Return(new(bytes.Buffer), nil)
-	s.MockRunner.On("Exec", "rm", []string{"-rf", s.logDir}).Return(new(bytes.Buffer), nil)
-	s.MockRunner.On("Exec", "rm", []string{"-rf", s.configDir}).Return(new(bytes.Buffer), nil)
-	s.MockRunner.On("Exec", "rm", []string{"-rf", s.sqlDir}).Return(new(bytes.Buffer), nil)
+	s.MockDocker.On("Rm", s.Cfg.Services.Clickhouse.ContainerName, true).Return("", nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.dataDir}).Return("", nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.logDir}).Return("", nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.configDir}).Return("", nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", s.sqlDir}).Return("", nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 

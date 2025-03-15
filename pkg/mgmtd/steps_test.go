@@ -1,7 +1,6 @@
 package mgmtd
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -88,7 +87,7 @@ func (s *initClusterStepSuite) TestInitCluster() {
 				Target: "/opt/3fs/etc",
 			},
 		},
-	}).Return(new(bytes.Buffer), nil)
+	}).Return("", nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 

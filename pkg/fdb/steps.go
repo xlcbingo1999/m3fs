@@ -33,7 +33,7 @@ func (s *genClusterFileContentStep) Execute(context.Context) error {
 
 	clusterFileContent := fmt.Sprintf("%s:%s@%s",
 		s.Runtime.Cfg.Name, s.Runtime.Cfg.Name, strings.Join(nodes, ","))
-	s.Logger.Infof("fdb cluster file content: %s", clusterFileContent)
+	s.Logger.Debugf("fdb cluster file content: %s", clusterFileContent)
 	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, clusterFileContent)
 	return nil
 }
@@ -83,7 +83,7 @@ func (s *runContainerStep) Execute(ctx context.Context) error {
 		return errors.Trace(err)
 	}
 
-	s.Logger.Infof("Start fdb container success")
+	s.Logger.Infof("Started fdb container %s successfully", s.Runtime.Services.Fdb.ContainerName)
 	return nil
 }
 
@@ -101,7 +101,7 @@ func (s *initClusterStep) Execute(ctx context.Context) error {
 }
 
 func (s *initClusterStep) initCluster(ctx context.Context) error {
-	s.Logger.Infof("Initialize fdb cluster")
+	s.Logger.Infof("Initializing fdb cluster")
 	// TODO: initialize fdb cluster with replication and coordinator setting
 	_, err := s.Em.Docker.Exec(ctx, s.Runtime.Services.Fdb.ContainerName,
 		"fdbcli", "--exec", "'configure new single ssd'")
@@ -123,13 +123,13 @@ func (s *initClusterStep) waitClusterInitilized(ctx context.Context) error {
 		if err != nil {
 			return errors.Annotate(err, "wait fdb cluster initialized")
 		}
-		if strings.Contains(out.String(), "The database is available.") {
+		if strings.Contains(out, "The database is available.") {
 			break
 		}
 		time.Sleep(time.Second)
 	}
 
-	s.Logger.Infof("Fdb cluster initialized")
+	s.Logger.Infof("Initialized fdb cluster")
 	return nil
 }
 
@@ -146,18 +146,19 @@ func (s *rmContainerStep) Execute(ctx context.Context) error {
 	}
 
 	dataDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "data")
-	s.Logger.Infof("Remove fdb container data dir %s", dataDir)
 	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", dataDir)
 	if err != nil {
 		return errors.Annotatef(err, "rm %s", dataDir)
 	}
+	s.Logger.Infof("Removed fdb container data dir %s", dataDir)
+
 	logDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "logs")
-	s.Logger.Infof("Remove fdb container log dir %s", logDir)
 	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", logDir)
 	if err != nil {
 		return errors.Annotatef(err, "rm %s", logDir)
 	}
+	s.Logger.Infof("Removed fdb container log dir %s", logDir)
 
-	s.Logger.Infof("FDB container %s successfully removed", containerName)
+	s.Logger.Infof("Removed fdb container %s successfully", containerName)
 	return nil
 }
