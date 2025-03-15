@@ -97,7 +97,7 @@ func (s *initClusterStep) Execute(ctx context.Context) error {
 		return errors.Trace(err)
 	}
 
-	return s.waitClusterInitilized(ctx)
+	return s.waitClusterInitialized(ctx)
 }
 
 func (s *initClusterStep) initCluster(ctx context.Context) error {
@@ -112,7 +112,7 @@ func (s *initClusterStep) initCluster(ctx context.Context) error {
 	return nil
 }
 
-func (s *initClusterStep) waitClusterInitilized(ctx context.Context) error {
+func (s *initClusterStep) waitClusterInitialized(ctx context.Context) error {
 	s.Logger.Infof("Waiting for fdb cluster initialized")
 	tctx, cancel := context.WithTimeout(ctx, s.Runtime.Services.Fdb.WaitClusterTimeout)
 	defer cancel()

@@ -156,7 +156,7 @@ func (s *configSuite) TestValidWithNoServiceNode() {
 	s.Error(cfg.SetValidate(""), "nodes of fdb service is required")
 }
 
-func (s *configSuite) TestValidWithSerivceNodeNotExists() {
+func (s *configSuite) TestValidWithServiceNodeNotExists() {
 	cfg := s.newConfigWithDefaults()
 	cfg.Services.Fdb.Nodes = []string{"node2"}
 

@@ -292,7 +292,7 @@ func (s *upload3FSMainConfigStepSuite) SetupTest() {
 	s.step = NewUpload3FSMainConfigStepFunc("3fs", s.Cfg.Services.Meta.ContainerName,
 		"meta_main", s.Cfg.Services.Meta.WorkDir, "META")().(*upload3FSMainConfigStep)
 	s.step.Init(s.Runtime, s.MockEm, config.Node{})
-	s.Runtime.Store(task.RuntimeMgmtdServerAddresseslKey, `["RDMA://1.1.1.1:8000"]`)
+	s.Runtime.Store(task.RuntimeMgmtdServerAddressesKey, `["RDMA://1.1.1.1:8000"]`)
 }
 
 func (s *upload3FSMainConfigStepSuite) TestRunContainer() {

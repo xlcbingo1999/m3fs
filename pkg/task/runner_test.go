@@ -31,13 +31,13 @@ func (s *runnerSuite) TestInit() {
 	s.mockTask.AssertExpectations(s.T())
 }
 
-func (s *runnerSuite) TestRegiserAfterInit() {
+func (s *runnerSuite) TestRegisterAfterInit() {
 	s.TestInit()
 
 	s.Error(s.runner.Register(s.mockTask), "runner has been initialized")
 }
 
-func (s *runnerSuite) TestRegiser() {
+func (s *runnerSuite) TestRegister() {
 	task2 := new(mockTask)
 	s.NoError(s.runner.Register(s.mockTask))
 

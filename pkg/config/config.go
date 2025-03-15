@@ -109,20 +109,20 @@ type Services struct {
 	Client     Client
 }
 
-// Registry is the service contaner image registry config definition
+// Registry is the service container image registry config definition
 type Registry struct {
 	CustomRegistry string `yaml:"customRegistry"`
 }
 
 // Config is the 3fs cluster config definition
 type Config struct {
-	Name             string
-	WorkDir          string `yaml:"workDir"`
-	NetworkType      NetworkType
-	Nodes            []Node
-	Services         Services `yaml:"services"`
-	Registry         Registry
-	CmdMaxExitTimout *time.Duration `yaml:",omitempty"`
+	Name              string
+	WorkDir           string `yaml:"workDir"`
+	NetworkType       NetworkType
+	Nodes             []Node
+	Services          Services `yaml:"services"`
+	Registry          Registry
+	CmdMaxExitTimeout *time.Duration `yaml:",omitempty"`
 }
 
 // SetValidate validates the config and set default values if some fields are missing
@@ -208,7 +208,7 @@ func (c *Config) SetValidate(workDir string) error {
 		c.Services.Meta.TCPListenPort = 9001
 	}
 
-	if err := c.validServiceNodes("storag", c.Services.Storage.Nodes, nodeSet, true); err != nil {
+	if err := c.validServiceNodes("storage", c.Services.Storage.Nodes, nodeSet, true); err != nil {
 		return errors.Trace(err)
 	}
 	if !diskTypes.Contains(c.Services.Storage.DiskType) {
