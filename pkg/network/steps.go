@@ -68,6 +68,18 @@ done
 `
 )
 
+var rdmaPackages = []string{
+	"iproute2",
+	"libibverbs1",
+	"ibverbs-utils",
+	"librdmacm1",
+	"libibumad3",
+	"ibverbs-providers",
+	"rdma-core",
+	"rdmacm-utils",
+	"perftest",
+}
+
 type genIbdev2netdevScriptStep struct {
 	task.BaseStep
 }
@@ -104,6 +116,20 @@ func (s *genIbdev2netdevScriptStep) Execute(ctx context.Context) error {
 		return errors.Annotatef(err, "chmod +x %s", remotePath)
 	}
 
+	return nil
+}
+
+type installRdmaPackageStep struct {
+	task.BaseStep
+}
+
+func (s *installRdmaPackageStep) Execute(ctx context.Context) error {
+	s.Logger.Debugf("Installing rdma related packages for %s", s.Node.Host)
+
+	_, err := s.Em.Runner.Exec(ctx, "apt", "install", "-y", strings.Join(rdmaPackages, " "))
+	if err != nil {
+		return errors.Annotatef(err, "install rdma related packages")
+	}
 	return nil
 }
 

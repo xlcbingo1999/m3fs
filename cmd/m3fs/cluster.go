@@ -177,10 +177,8 @@ func prepareCluster(ctx *cli.Context) error {
 	if artifactPath != "" {
 		runnerTasks = append(runnerTasks, new(artifact.ImportArtifactTask))
 	}
-	switch cfg.NetworkType {
-	case config.NetworkTypeRXE:
-		runnerTasks = append(runnerTasks, new(network.PrepareNetworkTask))
-	}
+	runnerTasks = append(runnerTasks, new(network.PrepareNetworkTask))
+
 	runner := task.NewRunner(cfg, runnerTasks...)
 	if artifactPath != "" {
 		if err = runner.Store(task.RuntimeArtifactOutputPathKey, artifactPath); err != nil {
