@@ -104,6 +104,13 @@ func (s *initClusterStep) Execute(ctx context.Context) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+
+	workDir := getServiceWorkDir(s.Runtime.WorkDir)
+	logDir := path.Join(workDir, "log")
+	_, err = s.Em.Runner.Exec(ctx, "mkdir", "-p", logDir)
+	if err != nil {
+		return errors.Annotatef(err, "mkdir %s", logDir)
+	}
 	args := &external.RunArgs{
 		Image:      img,
 		Name:       &mgmtd.ContainerName,
@@ -116,8 +123,12 @@ func (s *initClusterStep) Execute(ctx context.Context) error {
 		HostNetwork: true,
 		Volumes: []*external.VolumeArgs{
 			{
-				Source: path.Join(getServiceWorkDir(s.Runtime.WorkDir), "config.d"),
+				Source: path.Join(workDir, "config.d"),
 				Target: "/opt/3fs/etc",
+			},
+			{
+				Source: logDir,
+				Target: "/var/log/3fs",
 			},
 		},
 	}
