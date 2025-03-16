@@ -141,3 +141,19 @@ func (s *tarFilesStep) Execute(context.Context) error {
 	s.Logger.Infof("Generated tar files %s", dstPath)
 	return nil
 }
+
+type distributeArtifactStep struct {
+	task.BaseStep
+}
+
+func (s *distributeArtifactStep) Execute(context.Context) error {
+	return nil
+}
+
+type importArtifactStep struct {
+	task.BaseStep
+}
+
+func (s *importArtifactStep) Execute(context.Context) error {
+	return nil
+}
