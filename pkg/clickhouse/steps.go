@@ -1,6 +1,7 @@
 package clickhouse
 
 import (
+	"bytes"
 	"context"
 	"embed"
 	"fmt"
@@ -46,52 +47,44 @@ type genClickhouseConfigStep struct {
 }
 
 func (s *genClickhouseConfigStep) Execute(context.Context) error {
-	tempDir, err := os.MkdirTemp(os.TempDir(), "3fs-clickhouse.")
+	tempDir, err := s.Runtime.LocalEm.FS.MkdirTemp(os.TempDir(), "3fs-clickhouse.")
 	if err != nil {
 		return errors.Trace(err)
 	}
 	s.Runtime.Store("clickhouse_temp_config_dir", tempDir)
 
 	configFileName := "config.xml"
-	configFile, err := os.Create(filepath.Join(tempDir, configFileName))
-	if err != nil {
-		return errors.Trace(err)
-	}
-	defer func() {
-		if err := configFile.Close(); err != nil {
-			s.Logger.Warnf("Failed to close file %+v", err)
-		}
-	}()
 	configTmpl, err := template.New(configFileName).Parse(string(ClickhouseConfigTmpl))
 	if err != nil {
 		return errors.Annotate(err, "parse config.xml template")
 	}
-	err = configTmpl.Execute(configFile, map[string]string{
+	configBuffer := new(bytes.Buffer)
+	err = configTmpl.Execute(configBuffer, map[string]string{
 		"TCPPort": strconv.Itoa(s.Runtime.Services.Clickhouse.TCPPort),
 	})
 	if err != nil {
 		return errors.Annotate(err, "write config.xml")
 	}
-
-	sqlFileName := "3fs-monitor.sql"
-	sqlFile, err := os.Create(filepath.Join(tempDir, sqlFileName))
-	if err != nil {
+	configPath := filepath.Join(tempDir, configFileName)
+	if err = s.Runtime.LocalEm.FS.WriteFile(configPath, configBuffer.Bytes(), 0644); err != nil {
 		return errors.Trace(err)
 	}
-	defer func() {
-		if err := sqlFile.Close(); err != nil {
-			s.Logger.Warnf("Failed to close file %+v", err)
-		}
-	}()
+
+	sqlFileName := "3fs-monitor.sql"
 	sqlTmpl, err := template.New(sqlFileName).Parse(string(ClickhouseSQLTmpl))
 	if err != nil {
 		return errors.Annotate(err, "parse 3fs-monitor.sql template")
 	}
-	err = sqlTmpl.Execute(sqlFile, map[string]string{
+	sqlBuffer := new(bytes.Buffer)
+	err = sqlTmpl.Execute(sqlBuffer, map[string]string{
 		"Db": s.Runtime.Services.Clickhouse.Db,
 	})
 	if err != nil {
 		return errors.Annotate(err, "write 3fs-monitor.sql")
+	}
+	sqlPath := filepath.Join(tempDir, sqlFileName)
+	if err = s.Runtime.LocalEm.FS.WriteFile(sqlPath, sqlBuffer.Bytes(), 0644); err != nil {
+		return errors.Trace(err)
 	}
 
 	return nil

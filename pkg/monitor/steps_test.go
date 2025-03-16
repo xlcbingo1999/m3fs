@@ -2,9 +2,9 @@ package monitor
 
 import (
 	"os"
-	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/open3fs/m3fs/pkg/common"
@@ -35,15 +35,16 @@ func (s *genMonitorConfigStepSuite) SetupTest() {
 }
 
 func (s *genMonitorConfigStepSuite) Test() {
+	s.MockLocalFS.On("MkdirTemp", os.TempDir(), "3fs-monitor.").Return("/tmp/3fs-monitor.xxx", nil)
+	s.MockLocalFS.On("WriteFile", "/tmp/3fs-monitor.xxx/monitor_collector_main.toml",
+		mock.AnythingOfType("[]uint8"), os.FileMode(0644)).Return(nil)
+
 	s.NoError(s.step.Execute(s.Ctx()))
 
 	tmpDirValue, ok := s.Runtime.Load("monitor_temp_config_dir")
 	s.True(ok)
 	tmpDir := tmpDirValue.(string)
-	s.Contains(tmpDir, "3fs-monitor.")
-	_, err := os.ReadFile(filepath.Join(tmpDir, "monitor_collector_main.toml"))
-	s.NoError(err)
-	s.NoError(os.RemoveAll(tmpDir))
+	s.Equal("/tmp/3fs-monitor.xxx", tmpDir)
 }
 
 func TestRunContainerStep(t *testing.T) {

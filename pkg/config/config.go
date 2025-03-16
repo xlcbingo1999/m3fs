@@ -65,6 +65,7 @@ type Monitor struct {
 	ContainerName string `yaml:"containerName"`
 	Nodes         []string
 	WorkDir       string `yaml:"workDir"`
+	Port          int    `yaml:"port"`
 }
 
 // Mgmtd is the 3fs mgmtd service config definition
@@ -306,9 +307,11 @@ func NewConfigWithDefaults() *Config {
 			},
 			Clickhouse: Clickhouse{
 				ContainerName: "3fs-clickhouse",
+				TCPPort:       8999,
 			},
 			Monitor: Monitor{
 				ContainerName: "3fs-monitor",
+				Port:          10000,
 			},
 			Mgmtd: Mgmtd{
 				ContainerName:  "3fs-mgmtd",
