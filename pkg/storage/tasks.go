@@ -66,6 +66,10 @@ const (
 	serviceType = "STORAGE"
 )
 
+func getServiceWorkDir(workDir string) string {
+	return path.Join(workDir, "storage")
+}
+
 // CreateStorageServiceTask is a task for creating 3fs storage services.
 type CreateStorageServiceTask struct {
 	task.BaseTask
@@ -75,8 +79,10 @@ type CreateStorageServiceTask struct {
 func (t *CreateStorageServiceTask) Init(r *task.Runtime) {
 	t.BaseTask.Init(r)
 	t.BaseTask.SetName("CreateStorageServiceTask")
-	nodes := make([]config.Node, len(r.Cfg.Services.Storage.Nodes))
+
 	storage := r.Cfg.Services.Storage
+	workDir := getServiceWorkDir(r.WorkDir)
+	nodes := make([]config.Node, len(storage.Nodes))
 	for i, node := range storage.Nodes {
 		nodes[i] = r.Nodes[node]
 	}
@@ -88,11 +94,11 @@ func (t *CreateStorageServiceTask) Init(r *task.Runtime) {
 		{
 			Nodes: nodes,
 			NewStep: steps.NewRemoteRunScriptStepFunc(
-				storage.WorkDir,
+				workDir,
 				"disk_tool.sh",
 				DiskToolScript,
 				[]string{
-					storage.WorkDir,
+					workDir,
 					strconv.Itoa(storage.DiskNumPerNode),
 					string(storage.DiskType),
 					"prepare",
@@ -103,7 +109,7 @@ func (t *CreateStorageServiceTask) Init(r *task.Runtime) {
 			Parallel: true,
 			NewStep: steps.NewPrepare3FSConfigStepFunc(&steps.Prepare3FSConfigStepSetup{
 				Service:              ServiceName,
-				ServiceWorkDir:       storage.WorkDir,
+				ServiceWorkDir:       workDir,
 				MainAppTomlTmpl:      StorageMainAppTomlTmpl,
 				MainLauncherTomlTmpl: StorageMainLauncherTomlTmpl,
 				MainTomlTmpl:         StorageMainTomlTmpl,
@@ -120,7 +126,7 @@ func (t *CreateStorageServiceTask) Init(r *task.Runtime) {
 				"3fs",
 				storage.ContainerName,
 				ServiceName,
-				storage.WorkDir,
+				workDir,
 				serviceType,
 			),
 		},
@@ -132,10 +138,10 @@ func (t *CreateStorageServiceTask) Init(r *task.Runtime) {
 					ImgName:       "3fs",
 					ContainerName: storage.ContainerName,
 					Service:       ServiceName,
-					WorkDir:       storage.WorkDir,
+					WorkDir:       workDir,
 					ExtraVolumes: []*external.VolumeArgs{
 						{
-							Source: path.Join(storage.WorkDir, "3fsdata"),
+							Source: path.Join(workDir, "3fsdata"),
 							Target: "/mnt/3fsdata",
 						},
 					},
@@ -158,6 +164,7 @@ func (t *DeleteStorageServiceTask) Init(r *task.Runtime) {
 		nodes[i] = r.Nodes[node]
 	}
 	storage := r.Services.Storage
+	workDir := getServiceWorkDir(r.WorkDir)
 	t.SetSteps([]task.StepConfig{
 		{
 			Nodes:    nodes,
@@ -165,16 +172,16 @@ func (t *DeleteStorageServiceTask) Init(r *task.Runtime) {
 			NewStep: steps.NewRm3FSContainerStepFunc(
 				r.Services.Storage.ContainerName,
 				ServiceName,
-				r.Services.Storage.WorkDir),
+				workDir),
 		},
 		{
 			Nodes: nodes,
 			NewStep: steps.NewRemoteRunScriptStepFunc(
-				storage.WorkDir,
+				workDir,
 				"disk_tool.sh",
 				DiskToolScript,
 				[]string{
-					storage.WorkDir,
+					workDir,
 					strconv.Itoa(storage.DiskNumPerNode),
 					string(storage.DiskType),
 					"clear",

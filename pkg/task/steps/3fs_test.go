@@ -84,14 +84,13 @@ func (s *prepare3FSConfigStepSuite) SetupTest() {
 	s.Cfg.Name = "test-cluster"
 	s.node = s.Cfg.Nodes[0]
 	s.Cfg.Services.Mgmtd.Nodes = []string{"node1"}
-	s.Cfg.Services.Mgmtd.WorkDir = "/root"
 	s.Cfg.Services.Mgmtd.TCPListenPort = 9000
 	s.Cfg.Services.Mgmtd.RDMAListenPort = 8000
 	s.SetupRuntime()
 
 	s.step = NewPrepare3FSConfigStepFunc(&Prepare3FSConfigStepSetup{
 		Service:        "mgmtd_main",
-		ServiceWorkDir: "/root",
+		ServiceWorkDir: "/root/3fs/mgmtd",
 		TCPListenPort:  9000,
 		RDMAListenPort: 8000,
 		MainAppTomlTmpl: []byte(`allow_empty_node_id = true
@@ -134,9 +133,9 @@ listen_port_rdma = 8000`
 }
 
 func (s *prepare3FSConfigStepSuite) testPrepareConfig(removeAllErr error) {
-	s.MockLocalFS.On("MkdirAll", s.Runtime.Services.Mgmtd.WorkDir).Return(nil)
+	s.MockLocalFS.On("MkdirAll", "/root/3fs/mgmtd").Return(nil)
 	tmpDir := "/root/tmp..."
-	s.MockLocalFS.On("MkdirTemp", s.Runtime.Services.Mgmtd.WorkDir, s.node.Name+".*").
+	s.MockLocalFS.On("MkdirTemp", "/root/3fs/mgmtd", s.node.Name+".*").
 		Return(tmpDir, nil)
 	s.MockLocalFS.On("RemoveAll", tmpDir).Return(removeAllErr)
 	mainAppConfig, mainLauncherConfig, mainConfig, adminCli := s.getGeneratedConfigContent()
@@ -146,9 +145,9 @@ func (s *prepare3FSConfigStepSuite) testPrepareConfig(removeAllErr error) {
 	s.mockGenConfig(tmpDir+"/admin_cli.toml", adminCli)
 	s.MockLocalFS.On("WriteFile", tmpDir+"/fdb.cluster", []byte(s.fdbContent), os.FileMode(0644)).
 		Return(nil)
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.Runtime.Services.Mgmtd.WorkDir}).
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", "/root/3fs/mgmtd"}).
 		Return("", nil)
-	s.MockRunner.On("Scp", tmpDir, s.Cfg.Services.Mgmtd.WorkDir+"/config.d").Return(nil)
+	s.MockRunner.On("Scp", tmpDir, "/root/3fs/mgmtd/config.d").Return(nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
@@ -178,15 +177,14 @@ type run3FSContainerStepSuite struct {
 func (s *run3FSContainerStepSuite) SetupTest() {
 	s.StepSuite.SetupTest()
 
-	s.Cfg.Services.Mgmtd.WorkDir = "/var/mgmtd"
-	s.configDir = "/var/mgmtd/config.d"
+	s.configDir = "/root/3fs/mgmtd/config.d"
 	s.SetupRuntime()
 	s.step = NewRun3FSContainerStepFunc(
 		&Run3FSContainerStepSetup{
 			ImgName:       "3fs",
 			ContainerName: s.Runtime.Services.Mgmtd.ContainerName,
 			Service:       "mgmtd_main",
-			WorkDir:       s.Runtime.Services.Mgmtd.WorkDir,
+			WorkDir:       "/root/3fs/mgmtd",
 		})().(*run3FSContainerStep)
 	s.step.Init(s.Runtime, s.MockEm, config.Node{})
 	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, "xxxx")
@@ -237,11 +235,10 @@ type rm3FSContainerStepSuite struct {
 func (s *rm3FSContainerStepSuite) SetupTest() {
 	s.StepSuite.SetupTest()
 
-	s.Cfg.Services.Mgmtd.WorkDir = "/root/mgmtd"
-	s.configDir = "/root/mgmtd/config.d"
+	s.configDir = "/root/3fs/mgmtd/config.d"
 	s.SetupRuntime()
 	s.step = NewRm3FSContainerStepFunc(s.Cfg.Services.Mgmtd.ContainerName,
-		"mgmtd_main", s.Cfg.Services.Mgmtd.WorkDir)().(*rm3FSContainerStep)
+		"mgmtd_main", "/root/3fs/mgmtd")().(*rm3FSContainerStep)
 	s.step.Init(s.Runtime, s.MockEm, config.Node{})
 }
 
@@ -289,11 +286,10 @@ type upload3FSMainConfigStepSuite struct {
 func (s *upload3FSMainConfigStepSuite) SetupTest() {
 	s.StepSuite.SetupTest()
 
-	s.Cfg.Services.Meta.WorkDir = "/var/meta"
-	s.configDir = "/var/meta/config.d"
+	s.configDir = "/root/3fs/meta/config.d"
 	s.SetupRuntime()
 	s.step = NewUpload3FSMainConfigStepFunc("3fs", s.Cfg.Services.Meta.ContainerName,
-		"meta_main", s.Cfg.Services.Meta.WorkDir, "META")().(*upload3FSMainConfigStep)
+		"meta_main", "/root/3fs/meta", "META")().(*upload3FSMainConfigStep)
 	s.step.Init(s.Runtime, s.MockEm, config.Node{})
 	s.Runtime.Store(task.RuntimeMgmtdServerAddressesKey, `["RDMA://1.1.1.1:8000"]`)
 }
@@ -356,13 +352,12 @@ func (s *remoteRunScriptStepSuite) SetupTest() {
 	s.Cfg.Name = "test-cluster"
 	s.node = s.Cfg.Nodes[0]
 	s.Cfg.Services.Storage.Nodes = []string{"node1"}
-	s.Cfg.Services.Storage.WorkDir = "/root"
 	s.Cfg.Services.Storage.TCPListenPort = 9000
 	s.Cfg.Services.Storage.RDMAListenPort = 8000
 	s.SetupRuntime()
 
 	s.step = NewRemoteRunScriptStepFunc(
-		s.Cfg.Services.Storage.WorkDir,
+		"/root/3fs/storage",
 		"test123",
 		[]byte("ls -al"),
 		[]string{
@@ -377,17 +372,17 @@ func (s *remoteRunScriptStepSuite) SetupTest() {
 }
 
 func (s *remoteRunScriptStepSuite) testPrepareConfig(removeAllErr error) {
-	s.MockLocalFS.On("MkdirAll", s.Runtime.Services.Storage.WorkDir).Return(nil)
+	s.MockLocalFS.On("MkdirAll", "/root/3fs/storage").Return(nil)
 	tmpDir := "/root/tmp..."
-	s.MockLocalFS.On("MkdirTemp", s.Runtime.Services.Storage.WorkDir, s.node.Name+".*").
+	s.MockLocalFS.On("MkdirTemp", "/root/3fs/storage", s.node.Name+".*").
 		Return(tmpDir, nil)
 	s.MockLocalFS.On("RemoveAll", tmpDir).Return(removeAllErr)
 	tmpFilePath := tmpDir + "/tmp_script.sh"
 	s.MockLocalFS.On("WriteFile", tmpFilePath, []byte("ls -al"), os.FileMode(0775)).
 		Return(nil)
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.Cfg.Services.Storage.WorkDir}).
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", "/root/3fs/storage"}).
 		Return("", nil)
-	s.MockRunner.On("Exec", "mktemp", []string{"-p", s.Cfg.Services.Storage.WorkDir}).
+	s.MockRunner.On("Exec", "mktemp", []string{"-p", "/root/3fs/storage"}).
 		Return(tmpFilePath, nil)
 	s.MockRunner.On("Scp", tmpFilePath, tmpFilePath).Return(nil)
 	s.MockRunner.On("Exec", "bash", []string{tmpFilePath, "a", "b"}).Return("", nil)

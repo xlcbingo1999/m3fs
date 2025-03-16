@@ -41,7 +41,7 @@ const (
 )
 
 func getServiceWorkDir(workDir string) string {
-	return path.Join(workDir, "3fs_client")
+	return path.Join(workDir, "client")
 }
 
 // Create3FSClientServiceTask is a task for creating 3fs client services.
