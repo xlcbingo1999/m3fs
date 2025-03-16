@@ -63,12 +63,12 @@ type runContainerStep struct {
 func (s *runContainerStep) Execute(ctx context.Context) error {
 	workDir := getServiceWorkDir(s.Runtime.WorkDir)
 	dataDir := path.Join(workDir, "data")
-	_, err := s.Em.Runner.Exec(ctx, "mkdir", "-p", dataDir)
+	err := s.Em.FS.MkdirAll(ctx, dataDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", dataDir)
 	}
 	logDir := path.Join(workDir, "logs")
-	_, err = s.Em.Runner.Exec(ctx, "mkdir", "-p", logDir)
+	err = s.Em.FS.MkdirAll(ctx, logDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", logDir)
 	}

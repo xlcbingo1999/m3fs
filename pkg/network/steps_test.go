@@ -59,7 +59,7 @@ func (s *genIbdev2netdevScriptStepSuite) TestGenIbdev2netdevScript() {
 		[]byte(genIbdev2netdevScript), os.FileMode(0755)).Return(nil)
 
 	binDir := s.Cfg.WorkDir + "/bin"
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", binDir}).Return("", nil)
+	s.MockFS.On("MkdirAll", binDir).Return(nil)
 	remoteGenScriptPath := "/tmp/gen-ibdev2netdev"
 	s.MockRunner.On("Scp", scriptPath, remoteGenScriptPath).Return(nil)
 	s.MockRunner.On("Exec", "bash", []string{remoteGenScriptPath, binDir}).Return("", nil)
@@ -68,6 +68,7 @@ func (s *genIbdev2netdevScriptStepSuite) TestGenIbdev2netdevScript() {
 	s.NoError(s.step.Execute(s.Ctx()))
 
 	s.MockLocalFS.AssertExpectations(s.T())
+	s.MockFS.AssertExpectations(s.T())
 	s.MockRunner.AssertExpectations(s.T())
 }
 
@@ -189,7 +190,7 @@ func (s *createRdmaRxeLinkStepSuite) TestCreateRdmaRxeLinkStep() {
 
 	binDir := s.Cfg.WorkDir + "/bin"
 	remoteScriptPath := binDir + "/create_rdma_rxe_link"
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", binDir}).Return("", nil)
+	s.MockFS.On("MkdirAll", binDir).Return(nil)
 	s.MockRunner.On("Scp", scriptPath, remoteScriptPath).Return(nil)
 	s.MockRunner.On("Exec", "chmod", []string{"+x", remoteScriptPath}).Return("", nil)
 	s.MockRunner.On("Exec", "bash", []string{remoteScriptPath}).Return("", nil)
@@ -199,6 +200,7 @@ func (s *createRdmaRxeLinkStepSuite) TestCreateRdmaRxeLinkStep() {
 	s.NoError(s.step.Execute(s.Ctx()))
 
 	s.MockLocalFS.AssertExpectations(s.T())
+	s.MockFS.AssertExpectations(s.T())
 	s.MockRunner.AssertExpectations(s.T())
 }
 

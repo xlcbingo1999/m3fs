@@ -117,7 +117,7 @@ func (s *genIbdev2netdevScriptStep) Execute(ctx context.Context) error {
 	}
 
 	binDir := path.Join(s.Runtime.Cfg.WorkDir, "bin")
-	_, err = s.Em.Runner.Exec(ctx, "mkdir", "-p", binDir)
+	err = s.Em.FS.MkdirAll(ctx, binDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", binDir)
 	}
@@ -203,7 +203,7 @@ func (s *createRdmaRxeLinkStep) Execute(ctx context.Context) error {
 	}
 
 	binDir := path.Join(s.Runtime.Cfg.WorkDir, "bin")
-	_, err = s.Em.Runner.Exec(ctx, "mkdir", "-p", binDir)
+	err = s.Em.FS.MkdirAll(ctx, binDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", binDir)
 	}

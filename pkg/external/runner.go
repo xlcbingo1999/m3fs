@@ -15,7 +15,9 @@
 package external
 
 import (
+	"bufio"
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"os"
@@ -34,7 +36,9 @@ import (
 
 // RunnerInterface is the interface for running command.
 type RunnerInterface interface {
+	NonSudoExec(ctx context.Context, command string, args ...string) (string, error)
 	Exec(ctx context.Context, command string, args ...string) (string, error)
+
 	Scp(local, remote string) error
 }
 
@@ -44,10 +48,11 @@ type RemoteRunner struct {
 	log        *log.Logger
 	sshClient  *ssh.Client
 	sftpClient *sftp.Client
+	user       string
+	password   string
 }
 
-// Exec executes a command.
-func (r *RemoteRunner) Exec(ctx context.Context, command string, args ...string) (string, error) {
+func (r *RemoteRunner) exec(cmd string) (string, error) {
 	session, err := r.newSession()
 	if err != nil {
 		return "", errors.Trace(err)
@@ -58,14 +63,87 @@ func (r *RemoteRunner) Exec(ctx context.Context, command string, args ...string)
 		}
 	}()
 
-	cmdStr := strings.Join(append([]string{command}, args...), " ")
-	r.log.Debugf("Run command: %s", cmdStr)
-	output, err := session.CombinedOutput(cmdStr)
+	in, err := session.StdinPipe()
 	if err != nil {
-		r.log.Debugf("Run command failed, output: %s", string(output))
+		return "", errors.Annotate(err, "get session stdinpipe")
+	}
+	out, err := session.StdoutPipe()
+	if err != nil {
+		return "", errors.Annotate(err, "get session stdoutpipe")
+	}
+
+	r.log.Debugf("Run command: %s", cmd)
+	err = session.Start(cmd)
+	if err != nil {
 		return "", errors.Trace(err)
 	}
-	return string(output), nil
+
+	var (
+		output    []byte
+		line      = ""
+		outReader = bufio.NewReader(out)
+	)
+
+	requirePasswordPrefix := fmt.Sprintf("[sudo] password for %s: ", r.user)
+	for {
+		b, err := outReader.ReadByte()
+		if err != nil {
+			if err != io.EOF {
+				r.log.Debugf("Failed to read data from stdout: %s", err)
+			}
+			break
+		}
+
+		output = append(output, b)
+		if b == byte('\n') {
+			line = ""
+			continue
+		}
+
+		line += string(b)
+
+		if (strings.HasPrefix(line, requirePasswordPrefix) || strings.HasPrefix(line, "Password")) &&
+			strings.HasSuffix(line, ": ") {
+
+			line = ""
+			_, err = in.Write([]byte(r.password + "\n"))
+			if err != nil {
+				r.log.Debugf("Failed to input sudo password: %s", err)
+				break
+			}
+		}
+	}
+
+	err = session.Wait()
+	outStr := strings.ReplaceAll(string(output), requirePasswordPrefix, "")
+	r.log.Debugf("Output of `%s`: %s", cmd, outStr)
+	if err != nil {
+		return "", errors.Annotatef(err, "run `%s` failed", cmd)
+	}
+
+	return outStr, nil
+}
+
+// NonSudoExec executes a command.
+func (r *RemoteRunner) NonSudoExec(ctx context.Context, command string, args ...string) (string, error) {
+	cmdStr := strings.Join(append([]string{command}, args...), " ")
+	out, err := r.exec(cmdStr)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+
+	return out, nil
+}
+
+// Exec executes a command with sudo.
+func (r *RemoteRunner) Exec(ctx context.Context, command string, args ...string) (string, error) {
+	cmdStr := strings.Join(append([]string{command}, args...), " ")
+	out, err := r.exec(fmt.Sprintf("sudo %s", cmdStr))
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+
+	return out, nil
 }
 
 func (r *RemoteRunner) newSession() (*ssh.Session, error) {
@@ -116,11 +194,17 @@ func (r *RemoteRunner) Scp(local, remote string) error {
 	}
 	if !f.IsDir() {
 		if err := r.copyFileToRemote(local, remote); err != nil {
+			if e, ok := errors.Cause(err).(*sftp.StatusError); ok {
+				r.log.Errorf("Failed to copy %s to %s: %v", local, remote, e)
+			}
 			return errors.Trace(err)
 		}
 		return nil
 	}
 	if err := r.copyDirToRemote(local, remote); err != nil {
+		if e, ok := errors.Cause(err).(*sftp.StatusError); ok {
+			r.log.Errorf("Failed to copy %s to %s: %v", local, remote, e)
+		}
 		return errors.Trace(err)
 	}
 	return nil
@@ -217,9 +301,13 @@ func NewRemoteRunner(cfg *RemoteRunnerCfg) (*RemoteRunner, error) {
 		return nil, errors.Annotatef(err, "new sftp client")
 	}
 	runner := &RemoteRunner{
+		user:       cfg.Username,
 		log:        log.StandardLogger(),
 		sshClient:  sshClient,
 		sftpClient: sftpClient,
+	}
+	if cfg.Password != nil {
+		runner.password = *cfg.Password
 	}
 
 	return runner, nil

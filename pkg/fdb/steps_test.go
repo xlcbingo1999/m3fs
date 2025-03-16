@@ -91,8 +91,8 @@ func (s *runContainerStepSuite) SetupTest() {
 }
 
 func (s *runContainerStepSuite) TestRunContainerStep() {
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return("", nil)
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.logDir}).Return("", nil)
+	s.MockFS.On("MkdirAll", s.dataDir).Return(nil)
+	s.MockFS.On("MkdirAll", s.logDir).Return(nil)
 	img, err := s.Runtime.Cfg.Images.GetImage(config.ImageNameFdb)
 	s.NoError(err)
 	s.MockDocker.On("Run", &external.RunArgs{
@@ -117,13 +117,13 @@ func (s *runContainerStepSuite) TestRunContainerStep() {
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
-	s.MockRunner.AssertExpectations(s.T())
+	s.MockFS.AssertExpectations(s.T())
 	s.MockDocker.AssertExpectations(s.T())
 }
 
 func (s *runContainerStepSuite) TestRunContainerFailed() {
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return("", nil)
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.logDir}).Return("", nil)
+	s.MockFS.On("MkdirAll", s.dataDir).Return(nil)
+	s.MockFS.On("MkdirAll", s.logDir).Return(nil)
 	img, err := s.Runtime.Cfg.Images.GetImage(config.ImageNameFdb)
 	s.NoError(err)
 	s.MockDocker.On("Run", &external.RunArgs{
@@ -148,17 +148,17 @@ func (s *runContainerStepSuite) TestRunContainerFailed() {
 
 	s.Error(s.step.Execute(s.Ctx()), "dummy error")
 
-	s.MockRunner.AssertExpectations(s.T())
+	s.MockFS.AssertExpectations(s.T())
 	s.MockDocker.AssertExpectations(s.T())
 }
 
-func (s *runContainerStepSuite) TestRunDirFailed() {
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return("", nil)
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.logDir}).Return("", errors.New("dummy error"))
+func (s *runContainerStepSuite) TestMkdirDirFailed() {
+	s.MockFS.On("MkdirAll", s.dataDir).Return(nil)
+	s.MockFS.On("MkdirAll", s.logDir).Return(errors.New("dummy error"))
 
 	s.Error(s.step.Execute(s.Ctx()), "dummy error")
 
-	s.MockRunner.AssertExpectations(s.T())
+	s.MockFS.AssertExpectations(s.T())
 }
 
 func TestInitClusterStepSuite(t *testing.T) {

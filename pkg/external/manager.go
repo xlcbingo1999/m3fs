@@ -38,24 +38,20 @@ func (eb *externalBase) init(em *Manager) {
 	eb.logger = log.StandardLogger()
 }
 
-func (eb *externalBase) runWithAny(
-	ctx context.Context, cmdName string, args ...any) (string, error) {
-
-	cmd := NewCommand(cmdName, args...)
-	cmd.runner = eb.em.Runner
-	out, err := cmd.Exec(ctx)
-	if err != nil {
-		return out, errors.Annotatef(err, "run cmd [%s]", cmd.String())
-	}
-	return out, nil
-}
-
 func (eb *externalBase) run(ctx context.Context, cmdName string, args ...string) (string, error) {
 	anyArgs := []any{}
 	for _, arg := range args {
 		anyArgs = append(anyArgs, arg)
 	}
-	return eb.runWithAny(ctx, cmdName, anyArgs...)
+
+	cmd := NewCommand(cmdName, anyArgs...)
+	cmd.runner = eb.em.Runner
+	out, err := cmd.SudoExec(ctx)
+	if err != nil {
+		return out, errors.Annotatef(err, "sudo run cmd [%s]", cmd.String())
+	}
+	return out, nil
+
 }
 
 // create a new external

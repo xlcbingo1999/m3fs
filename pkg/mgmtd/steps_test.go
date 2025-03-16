@@ -85,7 +85,7 @@ func (s *initClusterStepSuite) SetupTest() {
 func (s *initClusterStepSuite) TestInitCluster() {
 	img, err := s.Runtime.Cfg.Images.GetImage(config.ImageName3FS)
 	s.NoError(err)
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.logDir}).Return("", nil)
+	s.MockFS.On("MkdirAll", s.logDir).Return(nil)
 	s.MockDocker.On("Run", &external.RunArgs{
 		Image:      img,
 		Name:       &s.Cfg.Services.Mgmtd.ContainerName,
@@ -111,7 +111,7 @@ func (s *initClusterStepSuite) TestInitCluster() {
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
-	s.MockRunner.AssertExpectations(s.T())
+	s.MockFS.AssertExpectations(s.T())
 	s.MockDocker.AssertExpectations(s.T())
 }
 

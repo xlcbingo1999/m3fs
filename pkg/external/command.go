@@ -48,6 +48,14 @@ func (cmd *Command) Exec(ctx context.Context) (out string, err error) {
 	if cmd.cmdName == "" {
 		return "", fmt.Errorf("No command")
 	}
+	return cmd.runner.NonSudoExec(ctx, cmd.cmdName, cmd.args...)
+}
+
+// SudoExec execute the command
+func (cmd *Command) SudoExec(ctx context.Context) (out string, err error) {
+	if cmd.cmdName == "" {
+		return "", fmt.Errorf("No command")
+	}
 	return cmd.runner.Exec(ctx, cmd.cmdName, cmd.args...)
 }
 
