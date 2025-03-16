@@ -31,6 +31,7 @@ type StepSuite struct {
 	MockEm     *external.Manager
 	MockRunner *texternal.MockRunner
 	MockDocker *texternal.MockDocker
+	MockFS     *texternal.MockFS
 	// NOTE: external.FSInterface is not implemented for remote runner.
 	// MockFS          *texternal.MockFS
 	MockLocalEm     *external.Manager
@@ -49,9 +50,11 @@ func (s *StepSuite) SetupTest() {
 
 	s.MockRunner = new(texternal.MockRunner)
 	s.MockDocker = new(texternal.MockDocker)
+	s.MockFS = new(texternal.MockFS)
 	s.MockEm = &external.Manager{
 		Runner: s.MockRunner,
 		Docker: s.MockDocker,
+		FS:     s.MockFS,
 	}
 
 	s.MockLocalDocker = new(texternal.MockDocker)

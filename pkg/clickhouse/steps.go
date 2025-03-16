@@ -64,8 +64,8 @@ type genClickhouseConfigStep struct {
 	task.BaseStep
 }
 
-func (s *genClickhouseConfigStep) Execute(context.Context) error {
-	tempDir, err := s.Runtime.LocalEm.FS.MkdirTemp(os.TempDir(), "3fs-clickhouse.")
+func (s *genClickhouseConfigStep) Execute(ctx context.Context) error {
+	tempDir, err := s.Runtime.LocalEm.FS.MkdirTemp(ctx, os.TempDir(), "3fs-clickhouse")
 	if err != nil {
 		return errors.Trace(err)
 	}

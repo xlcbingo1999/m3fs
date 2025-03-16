@@ -112,7 +112,7 @@ func (s *prepare3FSConfigStep) Execute(ctx context.Context) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	tmpDir, err := localEm.FS.MkdirTemp(s.serviceWorkDir, s.Node.Name+".*")
+	tmpDir, err := localEm.FS.MkdirTemp(ctx, s.serviceWorkDir, s.Node.Name)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -477,7 +477,7 @@ func (s *remoteRunScriptStep) Execute(ctx context.Context) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	tmpDir, err := localEm.FS.MkdirTemp(s.workDir, s.Node.Name+".*")
+	tmpDir, err := localEm.FS.MkdirTemp(ctx, s.workDir, s.Node.Name)
 	if err != nil {
 		return errors.Trace(err)
 	}

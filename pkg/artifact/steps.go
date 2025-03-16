@@ -44,14 +44,14 @@ type downloadImagesStep struct {
 	task.BaseLocalStep
 }
 
-func (s *downloadImagesStep) Execute(context.Context) error {
+func (s *downloadImagesStep) Execute(ctx context.Context) error {
 	imageNames := []string{
 		config.ImageNameFdb,
 		config.ImageNameClickhouse,
 		config.ImageName3FS,
 	}
 	for _, imageName := range imageNames {
-		filePath, err := s.downloadImage(imageName)
+		filePath, err := s.downloadImage(ctx, imageName)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -69,7 +69,7 @@ func (s *downloadImagesStep) getUrl(fileName string) string {
 	return fmt.Sprintf("https://artifactory.open3fs.com/3fs/%s", fileName)
 }
 
-func (s *downloadImagesStep) downloadImage(imageName string) (string, error) {
+func (s *downloadImagesStep) downloadImage(ctx context.Context, imageName string) (string, error) {
 	imageFileName, err := s.Runtime.Cfg.Images.GetImageFileName(imageName)
 	if err != nil {
 		return "", errors.Trace(err)
@@ -94,7 +94,7 @@ func (s *downloadImagesStep) downloadImage(imageName string) (string, error) {
 			return "", errors.Trace(err)
 		}
 		expectedSum := strings.Split(sumContent, " ")[0]
-		actualSum, err := s.Runtime.LocalEm.FS.Sha256sum(dstPath)
+		actualSum, err := s.Runtime.LocalEm.FS.Sha256sum(ctx, dstPath)
 		if err != nil {
 			return "", errors.Trace(err)
 		}
@@ -125,9 +125,9 @@ func (s *tarFilesStep) Execute(context.Context) error {
 		return errors.Errorf("Failed to get value of %s", task.RuntimeArtifactFilePathsKey)
 	}
 	filePaths := filePathsValue.([]string)
-	dstPath, ok := s.Runtime.LoadString(task.RuntimeArtifactOutputPathKey)
+	dstPath, ok := s.Runtime.LoadString(task.RuntimeArtifactPathKey)
 	if !ok {
-		return errors.Errorf("Failed to get value of %s", task.RuntimeArtifactOutputPathKey)
+		return errors.Errorf("Failed to get value of %s", task.RuntimeArtifactPathKey)
 	}
 	tmpDir, ok := s.Runtime.LoadString(task.RuntimeArtifactTmpDirKey)
 	if !ok {
@@ -142,11 +142,61 @@ func (s *tarFilesStep) Execute(context.Context) error {
 	return nil
 }
 
+type sha256sumArtifactStep struct {
+	task.BaseStep
+}
+
+func (s *sha256sumArtifactStep) Execute(ctx context.Context) error {
+	srcPath, ok := s.Runtime.LoadString(task.RuntimeArtifactPathKey)
+	if !ok {
+		return errors.Errorf("Failed to get value of %s", task.RuntimeArtifactPathKey)
+	}
+	localSum, err := s.Runtime.LocalEm.FS.Sha256sum(ctx, srcPath)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	s.Runtime.Store(task.RuntimeArtifactSha256sumKey, localSum)
+	s.Logger.Debugf("SHA256 checksum of artifact %s is %s", srcPath, localSum)
+	return nil
+}
+
 type distributeArtifactStep struct {
 	task.BaseStep
 }
 
-func (s *distributeArtifactStep) Execute(context.Context) error {
+func (s *distributeArtifactStep) Execute(ctx context.Context) error {
+	localSum, ok := s.Runtime.LoadString(task.RuntimeArtifactSha256sumKey)
+	if !ok {
+		return errors.Errorf("Failed to get value of %s", task.RuntimeArtifactSha256sumKey)
+	}
+
+	needCopy := true
+	dstPath := filepath.Join(s.Runtime.WorkDir, "3fs.tar.gz")
+	if remoteSum, err := s.Em.FS.Sha256sum(ctx, dstPath); err == nil {
+		needCopy = remoteSum != localSum
+	}
+	if needCopy {
+		s.Logger.Infof("Copying the artifact to %s", s.Node.Name)
+		srcPath, ok := s.Runtime.LoadString(task.RuntimeArtifactPathKey)
+		if !ok {
+			return errors.Errorf("Failed to get value of %s", task.RuntimeArtifactPathKey)
+		}
+		if err := s.Em.Runner.Scp(srcPath, dstPath); err != nil {
+			return errors.Trace(err)
+		}
+	} else {
+		s.Logger.Infof("Skip copying existed artifact to %s", s.Node.Name)
+	}
+	tempDir, err := s.Em.FS.MkdirTemp(ctx, s.Runtime.WorkDir, "artifact")
+	if err != nil {
+		return errors.Trace(err)
+	}
+	s.Runtime.Store(task.RuntimeArtifactTmpDirKey, tempDir)
+
+	s.Logger.Infof("Extracting the artifact to %s on %s", tempDir, s.Node.Name)
+	if err = s.Em.FS.ExtractTar(ctx, dstPath, tempDir); err != nil {
+		return errors.Trace(err)
+	}
 	return nil
 }
 
@@ -155,5 +205,6 @@ type importArtifactStep struct {
 }
 
 func (s *importArtifactStep) Execute(context.Context) error {
+
 	return nil
 }

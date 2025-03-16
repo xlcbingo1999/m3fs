@@ -17,27 +17,29 @@ package external
 import (
 	"archive/tar"
 	"compress/gzip"
-	"crypto/sha256"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/open3fs/m3fs/pkg/errors"
 )
 
 // FSInterface provides interface about local fs, this is not implemented for remote runner.
 type FSInterface interface {
-	MkdirTemp(string, string) (string, error)
+	MkdirTemp(context.Context, string, string) (string, error)
 	MkdirAll(string) error
 	RemoveAll(string) error
 	WriteFile(string, []byte, os.FileMode) error
 	DownloadFile(string, string) error
 	ReadRemoteFile(string) (string, error)
 	IsNotExist(string) (bool, error)
-	Sha256sum(string) (string, error)
+	Sha256sum(context.Context, string) (string, error)
 	Tar(srcPaths []string, basePath, dstPath string) error
+	ExtractTar(ctx context.Context, srcPath, dstDir string) error
 }
 
 type fsExternal struct {
@@ -54,15 +56,12 @@ func (fe *fsExternal) init(em *Manager) {
 	}
 }
 
-func (fe *fsExternal) MkdirTemp(dir, prefix string) (string, error) {
-	if fe.returnUnimplemented {
-		return "", errors.New("unimplemented")
-	}
-	name, err := os.MkdirTemp(dir, prefix)
+func (fe *fsExternal) MkdirTemp(ctx context.Context, dir, prefix string) (string, error) {
+	out, err := fe.run(ctx, "mktemp", "-d", "-p", dir, "-t", prefix+".XXXXXX")
 	if err != nil {
 		return "", errors.Trace(err)
 	}
-	return name, nil
+	return strings.TrimSpace(out), nil
 }
 
 func (fe *fsExternal) MkdirAll(dir string) error {
@@ -144,24 +143,16 @@ func (fe *fsExternal) IsNotExist(path string) (bool, error) {
 	return false, nil
 }
 
-func (fe *fsExternal) Sha256sum(path string) (string, error) {
-	if fe.returnUnimplemented {
-		return "", errors.New("unimplemented")
-	}
-	file, err := os.Open(path)
+func (fe *fsExternal) Sha256sum(ctx context.Context, path string) (string, error) {
+	out, err := fe.run(ctx, "sha256sum", path)
 	if err != nil {
 		return "", errors.Trace(err)
 	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			fe.logger.Warnf("Failed to close file: %v", err)
-		}
-	}()
-	hasher := sha256.New()
-	if _, err := io.Copy(hasher, file); err != nil {
-		return "", errors.Trace(err)
+	parts := strings.Fields(out)
+	if len(parts) < 1 {
+		return "", fmt.Errorf("Unexpected output: %s", path)
 	}
-	return fmt.Sprintf("%x", hasher.Sum(nil)), nil
+	return parts[0], nil
 }
 
 func (fe *fsExternal) Tar(srcPaths []string, basePath, dstPath string) error {
@@ -232,6 +223,14 @@ func (fe *fsExternal) addToTar(tarWriter *tar.Writer, srcPath, basePath string) 
 		return errors.Trace(err)
 	}
 
+	return nil
+}
+
+func (fe *fsExternal) ExtractTar(ctx context.Context, srcPath, dstDir string) error {
+	_, err := fe.run(ctx, "tar", "-zxvf", srcPath, "-C", dstDir)
+	if err != nil {
+		return errors.Trace(err)
+	}
 	return nil
 }
 

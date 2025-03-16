@@ -17,6 +17,7 @@ package artifact
 import (
 	"context"
 
+	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
 	"github.com/open3fs/m3fs/pkg/task"
 )
@@ -60,6 +61,10 @@ func (t *ImportArtifactTask) Init(r *task.Runtime) {
 	t.BaseTask.Init(r)
 	t.BaseTask.SetName("ImportArtifactTask")
 	t.SetSteps([]task.StepConfig{
+		{
+			Nodes:   []config.Node{r.Cfg.Nodes[0]},
+			NewStep: func() task.Step { return new(sha256sumArtifactStep) },
+		},
 		{
 			Nodes:   r.Cfg.Nodes,
 			NewStep: func() task.Step { return new(distributeArtifactStep) },

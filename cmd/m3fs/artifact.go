@@ -72,7 +72,7 @@ func exportArtifact(ctx *cli.Context) error {
 	if err = runner.Store(task.RuntimeArtifactTmpDirKey, tmpDir); err != nil {
 		return errors.Trace(err)
 	}
-	if err = runner.Store(task.RuntimeArtifactOutputPathKey, outputPath); err != nil {
+	if err = runner.Store(task.RuntimeArtifactPathKey, outputPath); err != nil {
 		return errors.Trace(err)
 	}
 	if err = runner.Run(ctx.Context); err != nil {

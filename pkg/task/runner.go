@@ -27,9 +27,10 @@ import (
 
 // defines keys of runtime cache.
 const (
-	RuntimeArtifactTmpDirKey     = "artifact/tmp_dir"
-	RuntimeArtifactOutputPathKey = "artifact/output_path"
-	RuntimeArtifactFilePathsKey  = "artifact/file_paths"
+	RuntimeArtifactTmpDirKey    = "artifact/tmp_dir"
+	RuntimeArtifactPathKey      = "artifact/path"
+	RuntimeArtifactSha256sumKey = "artifact/sha256sum"
+	RuntimeArtifactFilePathsKey = "artifact/file_paths"
 
 	RuntimeFdbClusterFileContentKey = "fdb_cluster_file_content"
 	RuntimeMgmtdServerAddressesKey  = "mgmtd_server_addresses"

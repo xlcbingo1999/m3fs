@@ -55,8 +55,8 @@ type genMonitorConfigStep struct {
 	task.BaseStep
 }
 
-func (s *genMonitorConfigStep) Execute(context.Context) error {
-	tempDir, err := s.Runtime.LocalEm.FS.MkdirTemp(os.TempDir(), "3fs-monitor.")
+func (s *genMonitorConfigStep) Execute(ctx context.Context) error {
+	tempDir, err := s.Runtime.LocalEm.FS.MkdirTemp(ctx, os.TempDir(), "3fs-monitor")
 	if err != nil {
 		return errors.Trace(err)
 	}
