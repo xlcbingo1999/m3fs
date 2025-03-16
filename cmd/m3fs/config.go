@@ -58,21 +58,22 @@ var configCmd = &cli.Command{
 }
 
 var sampleConfigTemplate = `name: "{{.name}}"
+workDir: "/opt/3fs"
 networktype: "RDMA"
 nodes:
-  - name: meta
+  - name: node1
     host: "192.168.1.1"
     username: "root"
     password: "password"
     rdmaAddresses:
       - "10.0.0.1"
-  - name: storage1
+  - name: node2
     host: "192.168.1.2"
     username: "root"
     password: "password"
     rdmaAddresses:
       - "10.0.0.2"
-  - name: storage2
+  - name: node3
     host: "192.168.1.3"
     username: "root"
     password: "password"
@@ -81,27 +82,27 @@ nodes:
 services:
   fdb:
     nodes: 
-      - meta
+      - node1
   clickhouse:
     nodes: 
-      - meta
+      - node1
   monitor:
     nodes:
-      - meta
+      - node1
   mgmtd:
     nodes: 
-      - meta
+      - node1
   meta:
     nodes: 
-      - meta
+      - node1
   storage:
     nodes: 
-      - storage1
-      - storage2
+      - node2
+      - node3
     diskType: "NVMe"
   client:
     nodes: 
-      - meta
+      - node1
     hostMountpoint: /mnt/3fs
 images:
   registry: "{{ .registry }}"
