@@ -27,11 +27,12 @@ type NetworkType string
 
 // defines network types
 const (
-	NetworkTypeRDMA NetworkType = "RDMA"
-	NetworkTypeRXE  NetworkType = "RXE"
+	NetworkTypeRDMA  NetworkType = "RDMA"
+	NetworkTypeRXE   NetworkType = "RXE"
+	NetworkTypeERDMA NetworkType = "ERDMA"
 )
 
-var networkTypes = utils.NewSet(NetworkTypeRDMA, NetworkTypeRXE)
+var networkTypes = utils.NewSet(NetworkTypeRDMA, NetworkTypeRXE, NetworkTypeERDMA)
 
 // DiskType is the type of disk definition
 type DiskType string

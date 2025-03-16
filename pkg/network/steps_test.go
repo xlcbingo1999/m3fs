@@ -16,6 +16,7 @@ package network
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -68,6 +69,39 @@ func (s *genIbdev2netdevScriptStepSuite) TestGenIbdev2netdevScript() {
 	s.NoError(s.step.Execute(s.Ctx()))
 
 	s.MockLocalFS.AssertExpectations(s.T())
+	s.MockRunner.AssertExpectations(s.T())
+}
+
+func TestInstallRdmaPackage(t *testing.T) {
+	suiteRun(t, &installRdmaPackageStepSuite{})
+}
+
+type installRdmaPackageStepSuite struct {
+	ttask.StepSuite
+
+	step *installRdmaPackageStep
+}
+
+func (s *installRdmaPackageStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.step = &installRdmaPackageStep{}
+	s.Cfg.Nodes = []config.Node{
+		{
+			Name: "node1",
+			Host: "1.1.1.1",
+		},
+	}
+	s.SetupRuntime()
+	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0])
+}
+
+func (s *installRdmaPackageStepSuite) TestInstallRdmaPackage() {
+	s.MockRunner.On("Exec", "apt", []string{"install", "-y",
+		strings.Join(rdmaPackages, " ")}).Return("", nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
 	s.MockRunner.AssertExpectations(s.T())
 }
 

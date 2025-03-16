@@ -15,6 +15,7 @@
 package network
 
 import (
+	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/task"
 )
 
@@ -29,18 +30,34 @@ func (t *PrepareNetworkTask) Init(r *task.Runtime) {
 	t.BaseTask.SetName("PrepareNetworkTask")
 	nodes := r.Cfg.Nodes
 
-	t.SetSteps([]task.StepConfig{
+	steps := []task.StepConfig{
 		{
 			Nodes:   nodes,
 			NewStep: func() task.Step { return new(genIbdev2netdevScriptStep) },
 		},
-		{
-			Nodes:   nodes,
-			NewStep: func() task.Step { return new(loadRdmaRxeModuleStep) },
-		},
-		{
-			Nodes:   nodes,
-			NewStep: func() task.Step { return new(createRdmaRxeLinkStep) },
-		},
-	})
+	}
+	switch r.Cfg.NetworkType {
+	case config.NetworkTypeRXE:
+		rxeSteps := []task.StepConfig{
+			{
+				Nodes:    nodes,
+				Parallel: true,
+				NewStep:  func() task.Step { return new(installRdmaPackageStep) },
+			},
+			{
+				Nodes:    nodes,
+				Parallel: true,
+				NewStep:  func() task.Step { return new(loadRdmaRxeModuleStep) },
+			},
+			{
+				Nodes:    nodes,
+				Parallel: true,
+				NewStep:  func() task.Step { return new(createRdmaRxeLinkStep) },
+			},
+		}
+		steps = append(steps, rxeSteps...)
+	case config.NetworkTypeERDMA:
+		// TODO
+	}
+	t.SetSteps(steps)
 }
