@@ -17,6 +17,7 @@ package network
 import (
 	"context"
 	"path"
+	"strings"
 
 	"github.com/open3fs/m3fs/pkg/errors"
 	"github.com/open3fs/m3fs/pkg/task"
@@ -29,21 +30,19 @@ const (
 # format: ibdev port xx ==> netdev (Up/Down)
 # example: mlx5_0 port 1 ==> eth0 (Up)
 
-for ibdev in $(ls /sys/class/infiniband)
+rdma link | awk '{print $2,$4,$8}' | while read ibInfo state netdev
 do
-    for ibport in $(ls /sys/class/infiniband/$ibdev/ports)
-    do
-        state=$(cat /sys/class/infiniband/$ibdev/ports/$ibport/state | awk '{print $2}')
-        netdev=$(cat /sys/class/infiniband/$ibdev/ports/$ibport/gid_attrs/ndevs/0)
-        if [ "$state" = "ACTIVE" ]; then
-            state=Up
-        else
-            state=Down
-        fi
-        if [ -n "$netdev" ]; then
-            echo "$ibdev port $ibport ==> $netdev ($state)"
-        fi
-    done
+	ibdev=$(echo $ibInfo | cut -d/ -f1)
+	ibport=$(echo $ibInfo | cut -d/ -f2)
+
+    if [ "$state" = "ACTIVE" ]; then
+        state=Up
+    else
+        state=Down
+    fi
+    if [ -n "$netdev" ]; then
+        echo "$ibdev port $ibport ==> $netdev ($state)"
+    fi
 done
 `
 	createRdmaLinkScript = `#!/bin/bash
@@ -113,9 +112,28 @@ type loadRdmaRxeModuleStep struct {
 }
 
 func (s *loadRdmaRxeModuleStep) Execute(ctx context.Context) error {
-	s.Logger.Debugf("loading rdma_rxe kernel module for %s", s.Node.Host)
-	// TODO check if we need create rxe type rdma link for this node
-	_, err := s.Em.Runner.Exec(ctx, "modprobe", "rdma_rxe")
+	s.Logger.Debugf("Loading rdma_rxe kernel module for %s if needed", s.Node.Host)
+
+	output, err := s.Em.Runner.Exec(ctx, "ls", "/sys/module")
+	if err != nil {
+		return errors.Annotate(err, "")
+	}
+	kernelModules := map[string]struct{}{}
+	for _, line := range strings.Split(output, "\n") {
+		modules := strings.Fields(line)
+		for _, module := range modules {
+			kernelModules[module] = struct{}{}
+		}
+	}
+
+	// if any of those modules is loaded, we don't need to load rdma_rxe
+	for _, module := range []string{"mlx5_core", "irdma", "erdma", "rdma_rxe"} {
+		if _, ok := kernelModules[module]; ok {
+			return nil
+		}
+	}
+
+	_, err = s.Em.Runner.Exec(ctx, "modprobe", "rdma_rxe")
 	if err != nil {
 		return errors.Annotatef(err, "modprobe rdma_rxe")
 	}
