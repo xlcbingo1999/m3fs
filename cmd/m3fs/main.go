@@ -24,7 +24,13 @@ import (
 	"github.com/open3fs/m3fs/pkg/errors"
 )
 
-var debug bool
+var (
+	debug          bool
+	configFilePath string
+	outputPath     string
+	tmpDir         string
+	workDir        string
+)
 
 func initLogger() {
 	if debug {
@@ -41,6 +47,7 @@ func main() {
 			return nil
 		},
 		Commands: []*cli.Command{
+			artifactCmd,
 			clusterCmd,
 			configCmd,
 			osCmd,

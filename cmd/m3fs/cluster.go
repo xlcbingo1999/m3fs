@@ -34,11 +34,6 @@ import (
 	"github.com/open3fs/m3fs/pkg/task"
 )
 
-var (
-	configFilePath string
-	workDir        string
-)
-
 var clusterCmd = &cli.Command{
 	Name:    "cluster",
 	Aliases: []string{"c"},

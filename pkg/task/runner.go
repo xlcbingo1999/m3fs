@@ -27,6 +27,10 @@ import (
 
 // defines keys of runtime cache.
 const (
+	RuntimeArtifactTmpDirKey     = "artifact/tmp_dir"
+	RuntimeArtifactOutputPathKey = "artifact/output_path"
+	RuntimeArtifactFilePathsKey  = "artifact/file_paths"
+
 	RuntimeFdbClusterFileContentKey = "fdb_cluster_file_content"
 	RuntimeMgmtdServerAddressesKey  = "mgmtd_server_addresses"
 	RuntimeUserTokenKey             = "user_token"
@@ -65,29 +69,39 @@ func (r *Runtime) LoadInt(key any) (int, bool) {
 
 // Runner is a task runner.
 type Runner struct {
-	tasks []Interface
-	cfg   *config.Config
-	init  bool
+	runtime *Runtime
+	tasks   []Interface
+	cfg     *config.Config
+	init    bool
 }
 
 // Init initializes all tasks.
 func (r *Runner) Init() {
-	runtime := &Runtime{Cfg: r.cfg, WorkDir: r.cfg.WorkDir}
-	runtime.Nodes = make(map[string]config.Node, len(r.cfg.Nodes))
+	r.runtime = &Runtime{Cfg: r.cfg, WorkDir: r.cfg.WorkDir}
+	r.runtime.Nodes = make(map[string]config.Node, len(r.cfg.Nodes))
 	for _, node := range r.cfg.Nodes {
-		runtime.Nodes[node.Name] = node
+		r.runtime.Nodes[node.Name] = node
 	}
-	runtime.Services = &r.cfg.Services
+	r.runtime.Services = &r.cfg.Services
 	em := external.NewManager(external.NewLocalRunner(&external.LocalRunnerCfg{
 		Logger:         logrus.StandardLogger(),
 		MaxExitTimeout: r.cfg.CmdMaxExitTimeout,
 	}))
-	runtime.LocalEm = em
+	r.runtime.LocalEm = em
 
 	for _, task := range r.tasks {
-		task.Init(runtime)
+		task.Init(r.runtime)
 	}
 	r.init = true
+}
+
+// Store sets the value for a key.
+func (r *Runner) Store(key, value any) error {
+	if r.runtime == nil {
+		return errors.Errorf("Runtime hasn't been initialized")
+	}
+	r.runtime.Store(key, value)
+	return nil
 }
 
 // Register registers tasks.
