@@ -186,15 +186,19 @@ type RemoteRunnerCfg struct {
 // NewRemoteRunner creates a remote runner.
 func NewRemoteRunner(cfg *RemoteRunnerCfg) (*RemoteRunner, error) {
 	authMethods := make([]ssh.AuthMethod, 0)
+	privateKeyPath := filepath.Join(os.Getenv("HOME"), ".ssh/id_rsa")
+	if _, err := os.Stat(privateKeyPath); err == nil {
+		privateKey, err := os.ReadFile(privateKeyPath)
+		if err == nil {
+			signer, parseErr := ssh.ParsePrivateKey(privateKey)
+			if parseErr != nil {
+				return nil, errors.Annotatef(parseErr, "parse private key")
+			}
+			authMethods = append(authMethods, ssh.PublicKeys(signer))
+		}
+	}
 	if cfg.Password != nil {
 		authMethods = append(authMethods, ssh.Password(*cfg.Password))
-	}
-	if cfg.PrivateKey != nil {
-		signer, parseErr := ssh.ParsePrivateKey([]byte(*cfg.PrivateKey))
-		if parseErr != nil {
-			return nil, errors.Annotatef(parseErr, "parse private key")
-		}
-		authMethods = append(authMethods, ssh.PublicKeys(signer))
 	}
 	sshConfig := &ssh.ClientConfig{
 		User:            cfg.Username,
