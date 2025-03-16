@@ -96,7 +96,27 @@ func (s *loadRdmaRxeModuleStepSuite) SetupTest() {
 }
 
 func (s *loadRdmaRxeModuleStepSuite) TestLoadRdmaRxeModule() {
+	lsOutput := `8250  crc_t10dif  hid_ntrig
+acpi  crct10dif_pclmul  i2c_piix4 libnvdimm`
+
+	s.MockRunner.On("Exec", "ls", []string{"/sys/module"}).Return(lsOutput, nil)
 	s.MockRunner.On("Exec", "modprobe", []string{"rdma_rxe"}).Return("", nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	s.MockRunner.AssertExpectations(s.T())
+}
+
+func (s *loadRdmaRxeModuleStepSuite) TestNoNeedLoadRdmaRxeModule() {
+	for _, module := range []string{"mlx5_core", "irdma", "erdma", "rdma_rxe"} {
+		s.testNoNeedLoadRdmaRxeModule(module)
+	}
+}
+
+func (s *loadRdmaRxeModuleStepSuite) testNoNeedLoadRdmaRxeModule(module string) {
+	lsOutput := `8250 crc_t10dif hid_ntrig` + " " + module
+
+	s.MockRunner.On("Exec", "ls", []string{"/sys/module"}).Return(lsOutput, nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
