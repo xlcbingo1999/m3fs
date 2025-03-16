@@ -208,3 +208,31 @@ func (s *createRdmaRxeLinkStep) Execute(ctx context.Context) error {
 	}
 	return nil
 }
+
+type deleteIbdev2netdevScriptStep struct {
+	task.BaseStep
+}
+
+func (s *deleteIbdev2netdevScriptStep) Execute(ctx context.Context) error {
+	s.Logger.Debugf("Deleting ibdev2netdev script for %s", s.Node.Host)
+	binDir := path.Join(s.Runtime.Cfg.WorkDir, "bin")
+	_, err := s.Em.Runner.Exec(ctx, "rm", "-f", path.Join(binDir, "ibdev2netdev"))
+	if err != nil {
+		return errors.Annotatef(err, "rm %s", path.Join(binDir, "ibdev2netdev"))
+	}
+	return nil
+}
+
+type deleteRdmaRxeLinkScriptStep struct {
+	task.BaseStep
+}
+
+func (s *deleteRdmaRxeLinkScriptStep) Execute(ctx context.Context) error {
+	s.Logger.Debugf("Deleting create_rdma_rxe_link script for %s", s.Node.Host)
+	binDir := path.Join(s.Runtime.Cfg.WorkDir, "bin")
+	_, err := s.Em.Runner.Exec(ctx, "rm", "-f", path.Join(binDir, "create_rdma_rxe_link"))
+	if err != nil {
+		return errors.Annotatef(err, "rm %s", path.Join(binDir, "create_rdma_rxe_link"))
+	}
+	return nil
+}

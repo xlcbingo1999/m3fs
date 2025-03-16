@@ -61,3 +61,37 @@ func (t *PrepareNetworkTask) Init(r *task.Runtime) {
 	}
 	t.SetSteps(steps)
 }
+
+// DeleteNetworkTask is a task for deleting configration added on setup network.
+type DeleteNetworkTask struct {
+	task.BaseTask
+}
+
+// Init initializes the task.
+func (t *DeleteNetworkTask) Init(r *task.Runtime) {
+	t.BaseTask.Init(r)
+	t.BaseTask.SetName("DeleteNetworkTask")
+	nodes := r.Cfg.Nodes
+
+	steps := []task.StepConfig{
+		{
+			Nodes:    nodes,
+			Parallel: true,
+			NewStep:  func() task.Step { return new(deleteIbdev2netdevScriptStep) },
+		},
+	}
+	switch r.Cfg.NetworkType {
+	case config.NetworkTypeRXE:
+		rxeSteps := []task.StepConfig{
+			{
+				Nodes:    nodes,
+				Parallel: true,
+				NewStep:  func() task.Step { return new(deleteRdmaRxeLinkScriptStep) },
+			},
+		}
+		steps = append(steps, rxeSteps...)
+	case config.NetworkTypeERDMA:
+		// TODO
+	}
+	t.SetSteps(steps)
+}
