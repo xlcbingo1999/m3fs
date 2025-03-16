@@ -68,6 +68,7 @@ type initClusterStepSuite struct {
 
 	step      *initClusterStep
 	configDir string
+	logDir    string
 }
 
 func (s *initClusterStepSuite) SetupTest() {
@@ -75,6 +76,7 @@ func (s *initClusterStepSuite) SetupTest() {
 
 	s.step = &initClusterStep{}
 	s.configDir = "/root/3fs/mgmtd/config.d"
+	s.logDir = "/root/3fs/mgmtd/log"
 	s.SetupRuntime()
 	s.step.Init(s.Runtime, s.MockEm, config.Node{})
 	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, "xxxx")
@@ -83,6 +85,7 @@ func (s *initClusterStepSuite) SetupTest() {
 func (s *initClusterStepSuite) TestInitCluster() {
 	img, err := s.Runtime.Cfg.Images.GetImage(config.ImageName3FS)
 	s.NoError(err)
+	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.logDir}).Return("", nil)
 	s.MockDocker.On("Run", &external.RunArgs{
 		Image:      img,
 		Name:       &s.Cfg.Services.Mgmtd.ContainerName,
@@ -98,6 +101,10 @@ func (s *initClusterStepSuite) TestInitCluster() {
 			{
 				Source: s.configDir,
 				Target: "/opt/3fs/etc",
+			},
+			{
+				Source: s.logDir,
+				Target: "/var/log/3fs",
 			},
 		},
 	}).Return("", nil)

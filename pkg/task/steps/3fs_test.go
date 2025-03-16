@@ -185,12 +185,14 @@ type run3FSContainerStepSuite struct {
 
 	step      *run3FSContainerStep
 	configDir string
+	logDir    string
 }
 
 func (s *run3FSContainerStepSuite) SetupTest() {
 	s.StepSuite.SetupTest()
 
 	s.configDir = "/root/3fs/mgmtd/config.d"
+	s.logDir = "/root/3fs/mgmtd/log"
 	s.SetupRuntime()
 	s.step = NewRun3FSContainerStepFunc(
 		&Run3FSContainerStepSetup{
@@ -224,6 +226,10 @@ func (s *run3FSContainerStepSuite) TestRunContainer() {
 			{
 				Source: s.configDir,
 				Target: "/opt/3fs/etc/",
+			},
+			{
+				Source: s.logDir,
+				Target: "/var/log/3fs",
 			},
 		},
 	}).Return("", nil)

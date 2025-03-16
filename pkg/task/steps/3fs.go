@@ -316,6 +316,10 @@ func (s *run3FSContainerStep) Execute(ctx context.Context) error {
 				Source: getConfigDir(s.serviceWorkDir),
 				Target: "/opt/3fs/etc/",
 			},
+			{
+				Source: path.Join(s.serviceWorkDir, "log"),
+				Target: "/var/log/3fs",
+			},
 		},
 	}
 	args.Volumes = append(args.Volumes, s.extraVolumes...)
