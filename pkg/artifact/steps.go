@@ -204,7 +204,65 @@ type importArtifactStep struct {
 	task.BaseStep
 }
 
-func (s *importArtifactStep) Execute(context.Context) error {
+func (s *importArtifactStep) Execute(ctx context.Context) error {
+	tempDir, ok := s.Runtime.LoadString(task.RuntimeArtifactTmpDirKey)
+	if !ok {
+		return errors.Errorf("Failed to get value of %s", task.RuntimeArtifactSha256sumKey)
+	}
+	imageNames := []string{
+		config.ImageNameFdb,
+		config.ImageNameClickhouse,
+		config.ImageName3FS,
+	}
+	for _, imageName := range imageNames {
+		err := s.loadImage(ctx, imageName, tempDir)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	return nil
+}
+
+func (s *importArtifactStep) loadImage(ctx context.Context, imageName, tempDir string) error {
+	imageFileName, err := s.Runtime.Cfg.Images.GetImageFileName(imageName)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	imageFilePath := filepath.Join(tempDir, imageFileName)
+	if _, err = s.Em.Docker.Load(ctx, imageFilePath); err != nil {
+		return errors.Trace(err)
+	}
+	if s.Runtime.Cfg.Images.Registry != "" {
+		imageWithRegistry, err := s.Runtime.Cfg.Images.GetImage(imageName)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		imageWithoutRegistry, err := s.Runtime.Cfg.Images.GetImageWithoutRegistry(imageName)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		if err = s.Em.Docker.Tag(ctx, imageWithoutRegistry, imageWithRegistry); err != nil {
+			return errors.Trace(err)
+		}
+	}
+
+	return nil
+}
+
+type removeArtifactStep struct {
+	task.BaseStep
+}
+
+func (s *removeArtifactStep) Execute(ctx context.Context) error {
+	tempDir, ok := s.Runtime.LoadString(task.RuntimeArtifactTmpDirKey)
+	if !ok {
+		return errors.Errorf("Failed to get value of %s", task.RuntimeArtifactSha256sumKey)
+	}
+	_, err := s.Em.Runner.Exec(ctx, "rm", "-rf", tempDir)
+	if err != nil {
+		return errors.Annotatef(err, "rm %s", tempDir)
+	}
+	s.Logger.Infof("Removed temp dir %s", tempDir)
 
 	return nil
 }

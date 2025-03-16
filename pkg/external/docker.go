@@ -27,6 +27,8 @@ type DockerInterface interface {
 	Run(ctx context.Context, args *RunArgs) (out string, err error)
 	Rm(ctx context.Context, name string, force bool) (out string, err error)
 	Exec(context.Context, string, string, ...string) (out string, err error)
+	Load(ctx context.Context, path string) (out string, err error)
+	Tag(ctx context.Context, src, dst string) error
 }
 
 type dockerExternal struct {
@@ -142,6 +144,16 @@ func (de *dockerExternal) Exec(
 	params = append(params, args...)
 	out, err = de.run(ctx, "docker", params...)
 	return out, errors.Trace(err)
+}
+
+func (de *dockerExternal) Load(ctx context.Context, path string) (out string, err error) {
+	out, err = de.run(ctx, "docker", "load", "-i", path)
+	return out, errors.Trace(err)
+}
+
+func (de *dockerExternal) Tag(ctx context.Context, src, dst string) error {
+	_, err := de.run(ctx, "docker", "tag", src, dst)
+	return errors.Trace(err)
 }
 
 func init() {

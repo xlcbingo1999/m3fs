@@ -59,3 +59,14 @@ func (m *MockDocker) Exec(ctx context.Context, container, cmd string, args ...st
 	}
 	return arg.String(0), nil
 }
+
+// Load mock.
+func (m *MockDocker) Load(ctx context.Context, path string) (string, error) {
+	arg := m.Called(path)
+	return arg.String(0), arg.Error(1)
+}
+
+// Tag mock.
+func (m *MockDocker) Tag(ctx context.Context, src, dst string) error {
+	return m.Called(src, dst).Error(0)
+}
