@@ -73,7 +73,7 @@ func (t *CreateMgmtdServiceTask) Init(r *task.Runtime) {
 			Parallel: true,
 			NewStep: steps.NewRun3FSContainerStepFunc(
 				&steps.Run3FSContainerStepSetup{
-					ImgName:       "3fs",
+					ImgName:       config.ImageName3FS,
 					ContainerName: r.Services.Mgmtd.ContainerName,
 					Service:       ServiceName,
 					WorkDir:       getServiceWorkDir(r.WorkDir),

@@ -23,7 +23,6 @@ import (
 	"github.com/open3fs/m3fs/pkg/common"
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/external"
-	"github.com/open3fs/m3fs/pkg/image"
 	"github.com/open3fs/m3fs/pkg/task"
 	ttask "github.com/open3fs/m3fs/tests/task"
 )
@@ -82,7 +81,7 @@ func (s *initClusterStepSuite) SetupTest() {
 }
 
 func (s *initClusterStepSuite) TestInitCluster() {
-	img, err := image.GetImage(s.Runtime.Cfg.Registry.CustomRegistry, "3fs")
+	img, err := s.Runtime.Cfg.Images.GetImage(config.ImageName3FS)
 	s.NoError(err)
 	s.MockDocker.On("Run", &external.RunArgs{
 		Image:      img,

@@ -103,11 +103,26 @@ services:
     nodes: 
       - meta
     hostMountpoint: /mnt/3fs
-registry:
-  customRegistry: ""
+images:
+  registry: "{{ .registry }}"
+  3fs:
+    repo: "open3fs/3fs"
+    tag: "20250315"
+  fdb: 
+    repo: "open3fs/foundationdb"
+    tag: "7.3.63"
+  clickhouse:
+    repo: "open3fs/clickhouse"
+    tag: "25.1-jammy"
 `
 
 func createSampleConfig(ctx *cli.Context) error {
+	registry := ""
+	if os.Getenv("M3FS_ZONE") == "CN" {
+		// TODO: set to cn registry
+		registry = ""
+	}
+
 	tmpl, err := template.New("sampleConfig").Parse(sampleConfigTemplate)
 	if err != nil {
 		return errors.Annotate(err, "parse sample config template")
@@ -123,7 +138,10 @@ func createSampleConfig(ctx *cli.Context) error {
 	if err != nil {
 		return errors.Annotate(err, "create sample config file")
 	}
-	err = tmpl.Execute(file, map[string]string{"name": clusterName})
+	err = tmpl.Execute(file, map[string]string{
+		"name":     clusterName,
+		"registry": registry,
+	})
 	if err != nil {
 		return errors.Annotate(err, "write sample config file")
 	}

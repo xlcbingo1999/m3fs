@@ -25,7 +25,6 @@ import (
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
 	"github.com/open3fs/m3fs/pkg/external"
-	"github.com/open3fs/m3fs/pkg/image"
 	"github.com/open3fs/m3fs/pkg/task"
 	ttask "github.com/open3fs/m3fs/tests/task"
 )
@@ -195,7 +194,7 @@ func (s *run3FSContainerStepSuite) SetupTest() {
 	s.SetupRuntime()
 	s.step = NewRun3FSContainerStepFunc(
 		&Run3FSContainerStepSetup{
-			ImgName:       "3fs",
+			ImgName:       config.ImageName3FS,
 			ContainerName: s.Runtime.Services.Mgmtd.ContainerName,
 			Service:       "mgmtd_main",
 			WorkDir:       "/root/3fs/mgmtd",
@@ -205,7 +204,7 @@ func (s *run3FSContainerStepSuite) SetupTest() {
 }
 
 func (s *run3FSContainerStepSuite) TestRunContainer() {
-	img, err := image.GetImage(s.Runtime.Cfg.Registry.CustomRegistry, "3fs")
+	img, err := s.Runtime.Cfg.Images.GetImage(config.ImageName3FS)
 	s.NoError(err)
 	s.MockDocker.On("Run", &external.RunArgs{
 		Image:       img,
@@ -302,14 +301,14 @@ func (s *upload3FSMainConfigStepSuite) SetupTest() {
 
 	s.configDir = "/root/3fs/meta/config.d"
 	s.SetupRuntime()
-	s.step = NewUpload3FSMainConfigStepFunc("3fs", s.Cfg.Services.Meta.ContainerName,
+	s.step = NewUpload3FSMainConfigStepFunc(config.ImageName3FS, s.Cfg.Services.Meta.ContainerName,
 		"meta_main", "/root/3fs/meta", "META")().(*upload3FSMainConfigStep)
 	s.step.Init(s.Runtime, s.MockEm, config.Node{})
 	s.Runtime.Store(task.RuntimeMgmtdServerAddressesKey, `["RDMA://1.1.1.1:8000"]`)
 }
 
 func (s *upload3FSMainConfigStepSuite) TestUploadConfig() {
-	img, err := image.GetImage(s.Runtime.Cfg.Registry.CustomRegistry, "3fs")
+	img, err := s.Runtime.Cfg.Images.GetImage(config.ImageName3FS)
 	s.NoError(err)
 	s.MockDocker.On("Run", &external.RunArgs{
 		Image:       img,

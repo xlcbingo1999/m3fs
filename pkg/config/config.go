@@ -128,19 +128,14 @@ type Services struct {
 	Client     Client
 }
 
-// Registry is the service container image registry config definition
-type Registry struct {
-	CustomRegistry string `yaml:"customRegistry"`
-}
-
 // Config is the 3fs cluster config definition
 type Config struct {
 	Name              string
 	WorkDir           string `yaml:"workDir"`
 	NetworkType       NetworkType
 	Nodes             []Node
-	Services          Services `yaml:"services"`
-	Registry          Registry
+	Services          Services       `yaml:"services"`
+	Images            Images         `yaml:"images"`
 	CmdMaxExitTimeout *time.Duration `yaml:",omitempty"`
 }
 
@@ -267,6 +262,10 @@ func (c *Config) SetValidate(workDir string) error {
 		return errors.New("services.client.hostMountpoint is required")
 	}
 
+	if err := c.validImages(); err != nil {
+		return errors.Trace(err)
+	}
+
 	return nil
 }
 
@@ -285,6 +284,36 @@ func (c *Config) validServiceNodes(
 			return errors.Errorf("duplicate node %s in %s service", node, service)
 		}
 	}
+	return nil
+}
+
+func (c *Config) validImages() error {
+	imgs := []struct {
+		imgName string
+		image   Image
+	}{
+		{
+			imgName: "fdb",
+			image:   c.Images.Fdb,
+		},
+		{
+			imgName: "clickhouse",
+			image:   c.Images.Clickhouse,
+		},
+		{
+			imgName: "3fs",
+			image:   c.Images.FFFS,
+		},
+	}
+	for _, img := range imgs {
+		if img.image.Tag == "" {
+			return errors.Errorf("images.%s.tag is required", img.imgName)
+		}
+		if img.image.Repo == "" {
+			return errors.Errorf("images.%s.repo is required", img.imgName)
+		}
+	}
+
 	return nil
 }
 
@@ -331,6 +360,21 @@ func NewConfigWithDefaults() *Config {
 			Client: Client{
 				ContainerName:  "3fs-client",
 				HostMountpoint: "/mnt/3fs",
+			},
+		},
+		Images: Images{
+			Registry: "",
+			FFFS: Image{
+				Repo: "open3fs/3fs",
+				Tag:  "20250315",
+			},
+			Fdb: Image{
+				Repo: "open3fs/foundationdb",
+				Tag:  "7.3.63",
+			},
+			Clickhouse: Image{
+				Repo: "open3fs/clickhouse",
+				Tag:  "25.1-jammy",
 			},
 		},
 	}

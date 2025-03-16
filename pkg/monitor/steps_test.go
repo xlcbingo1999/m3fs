@@ -24,7 +24,6 @@ import (
 	"github.com/open3fs/m3fs/pkg/common"
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/external"
-	"github.com/open3fs/m3fs/pkg/image"
 	ttask "github.com/open3fs/m3fs/tests/task"
 )
 
@@ -87,7 +86,7 @@ func (s *runContainerStepSuite) Test() {
 	s.MockRunner.On("Exec", "mkdir", []string{"-p", logDir}).Return("", nil)
 	s.MockRunner.On("Scp", "/tmp/3f-monitor.xxx/monitor_collector_main.toml",
 		"/root/3fs/monitor/etc/monitor_collector_main.toml").Return(nil)
-	img, err := image.GetImage("", "3fs")
+	img, err := s.Runtime.Cfg.Images.GetImage(config.ImageName3FS)
 	s.NoError(err)
 	s.MockDocker.On("Run", &external.RunArgs{
 		Image:       img,

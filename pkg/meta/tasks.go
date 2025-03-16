@@ -68,7 +68,7 @@ func (t *CreateMetaServiceTask) Init(r *task.Runtime) {
 		{
 			Nodes: []config.Node{nodes[0]},
 			NewStep: steps.NewUpload3FSMainConfigStepFunc(
-				"3fs",
+				config.ImageName3FS,
 				r.Services.Meta.ContainerName,
 				ServiceName,
 				workDir,
@@ -80,7 +80,7 @@ func (t *CreateMetaServiceTask) Init(r *task.Runtime) {
 			Parallel: true,
 			NewStep: steps.NewRun3FSContainerStepFunc(
 				&steps.Run3FSContainerStepSetup{
-					ImgName:       "3fs",
+					ImgName:       config.ImageName3FS,
 					ContainerName: r.Services.Meta.ContainerName,
 					Service:       ServiceName,
 					WorkDir:       workDir,

@@ -24,9 +24,9 @@ import (
 	"time"
 
 	"github.com/open3fs/m3fs/pkg/common"
+	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
 	"github.com/open3fs/m3fs/pkg/external"
-	"github.com/open3fs/m3fs/pkg/image"
 	"github.com/open3fs/m3fs/pkg/task"
 )
 
@@ -72,7 +72,7 @@ func (s *runContainerStep) Execute(ctx context.Context) error {
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", logDir)
 	}
-	img, err := image.GetImage(s.Runtime.Cfg.Registry.CustomRegistry, "fdb")
+	img, err := s.Runtime.Cfg.Images.GetImage(config.ImageNameFdb)
 	if err != nil {
 		return errors.Trace(err)
 	}
