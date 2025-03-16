@@ -157,7 +157,7 @@ func (s *tarFilesStepSuite) SetupTest() {
 	s.Runtime.Store(task.RuntimeArtifactFilePathsKey,
 		[]string{"/tmp/3fs/3fs_20250315_amd64.docker"})
 	s.Runtime.Store(task.RuntimeArtifactTmpDirKey, "/tmp/3fs")
-	s.Runtime.Store(task.RuntimeArtifactOutputPathKey, "/root/3fs.tar.gz")
+	s.Runtime.Store(task.RuntimeArtifactPathKey, "/root/3fs.tar.gz")
 }
 
 func (s *tarFilesStepSuite) Test() {
@@ -170,4 +170,86 @@ func (s *tarFilesStepSuite) Test() {
 	s.NoError(s.step.Execute(s.Ctx()))
 
 	s.MockLocalFS.AssertExpectations(s.T())
+}
+
+func TestSha256sumArtifactStep(t *testing.T) {
+	suiteRun(t, &sha256sumArtifactStepSuite{})
+}
+
+type sha256sumArtifactStepSuite struct {
+	ttask.StepSuite
+
+	step *sha256sumArtifactStep
+}
+
+func (s *sha256sumArtifactStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.step = &sha256sumArtifactStep{}
+	s.SetupRuntime()
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.Runtime.Store(task.RuntimeArtifactPathKey, "/root/3fs.tar.gz")
+}
+
+func (s *sha256sumArtifactStepSuite) Test() {
+	s.MockLocalFS.On("Sha256sum", "/root/3fs.tar.gz").Return("xxx", nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	sha256sum, ok := s.Runtime.LoadString(task.RuntimeArtifactSha256sumKey)
+	s.True(ok)
+	s.Equal("xxx", sha256sum)
+}
+
+func TestDistributeArtifactStep(t *testing.T) {
+	suiteRun(t, &distributeArtifactStepSuite{})
+}
+
+type distributeArtifactStepSuite struct {
+	ttask.StepSuite
+
+	step *distributeArtifactStep
+}
+
+func (s *distributeArtifactStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.step = &distributeArtifactStep{}
+	s.SetupRuntime()
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.Runtime.Store(task.RuntimeArtifactPathKey, "/root/3fs.tar.gz")
+	s.Runtime.Store(task.RuntimeArtifactSha256sumKey, "xxx")
+}
+
+func (s *distributeArtifactStepSuite) TestWithExisted() {
+	s.MockFS.On("Sha256sum", "/root/3fs/3fs.tar.gz").Return("xxx", nil)
+	s.MockFS.On("MkdirTemp", "/root/3fs", "artifact").Return("/root/3fs/artifact-xxx", nil)
+	s.MockFS.On("ExtractTar", "/root/3fs/3fs.tar.gz", "/root/3fs/artifact-xxx").Return(nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	sha256sum, ok := s.Runtime.LoadString(task.RuntimeArtifactSha256sumKey)
+	s.True(ok)
+	s.Equal("xxx", sha256sum)
+	tempDir, ok := s.Runtime.LoadString(task.RuntimeArtifactTmpDirKey)
+	s.True(ok)
+	s.Equal("/root/3fs/artifact-xxx", tempDir)
+
+	s.MockFS.AssertExpectations(s.T())
+}
+
+func (s *distributeArtifactStepSuite) TestWithNotExisted() {
+	s.MockFS.On("Sha256sum", "/root/3fs/3fs.tar.gz").Return("", fmt.Errorf("Dummy error"))
+	s.MockRunner.On("Scp", "/root/3fs.tar.gz", "/root/3fs/3fs.tar.gz").Return(nil)
+	s.MockFS.On("MkdirTemp", "/root/3fs", "artifact").Return("/root/3fs/artifact-xxx", nil)
+	s.MockFS.On("ExtractTar", "/root/3fs/3fs.tar.gz", "/root/3fs/artifact-xxx").Return(nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	sha256sum, ok := s.Runtime.LoadString(task.RuntimeArtifactSha256sumKey)
+	s.True(ok)
+	s.Equal("xxx", sha256sum)
+
+	s.MockFS.AssertExpectations(s.T())
+	s.MockRunner.AssertExpectations(s.T())
 }

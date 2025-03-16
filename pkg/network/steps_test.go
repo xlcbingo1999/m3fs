@@ -53,7 +53,7 @@ func (s *genIbdev2netdevScriptStepSuite) SetupTest() {
 
 func (s *genIbdev2netdevScriptStepSuite) TestGenIbdev2netdevScript() {
 	tmpDir := "/tmp/m3fs-prepare-network.123"
-	s.MockLocalFS.On("MkdirTemp", "/tmp", "m3fs-prepare-network.*").Return(tmpDir, nil)
+	s.MockLocalFS.On("MkdirTemp", "/tmp", "m3fs-prepare-network").Return(tmpDir, nil)
 	scriptPath := tmpDir + "/ibdev2netdev"
 	s.MockLocalFS.On("WriteFile", scriptPath,
 		[]byte(ibdev2netdevScript), os.FileMode(0755)).Return(nil)
@@ -183,7 +183,7 @@ func (s *createRdmaRxeLinkStepSuite) SetupTest() {
 
 func (s *createRdmaRxeLinkStepSuite) TestCreateRdmaRxeLinkStep() {
 	tmpDir := "/tmp/m3fs-prepare-network.123"
-	s.MockLocalFS.On("MkdirTemp", "/tmp", "m3fs-prepare-network.*").Return(tmpDir, nil)
+	s.MockLocalFS.On("MkdirTemp", "/tmp", "m3fs-prepare-network").Return(tmpDir, nil)
 	scriptPath := tmpDir + "/create_rdma_rxe_link"
 	s.MockLocalFS.On("WriteFile", scriptPath,
 		[]byte(createRdmaLinkScript), os.FileMode(0755)).Return(nil)

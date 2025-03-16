@@ -48,7 +48,7 @@ func (s *genMonitorConfigStepSuite) SetupTest() {
 }
 
 func (s *genMonitorConfigStepSuite) Test() {
-	s.MockLocalFS.On("MkdirTemp", os.TempDir(), "3fs-monitor.").Return("/tmp/3fs-monitor.xxx", nil)
+	s.MockLocalFS.On("MkdirTemp", os.TempDir(), "3fs-monitor").Return("/tmp/3fs-monitor.xxx", nil)
 	s.MockLocalFS.On("WriteFile", "/tmp/3fs-monitor.xxx/monitor_collector_main.toml",
 		mock.AnythingOfType("[]uint8"), os.FileMode(0644)).Return(nil)
 

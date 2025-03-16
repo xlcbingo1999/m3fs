@@ -49,7 +49,7 @@ func (s *genClickhouseConfigStepSuite) SetupTest() {
 }
 
 func (s *genClickhouseConfigStepSuite) Test() {
-	s.MockLocalFS.On("MkdirTemp", os.TempDir(), "3fs-clickhouse.").
+	s.MockLocalFS.On("MkdirTemp", os.TempDir(), "3fs-clickhouse").
 		Return("/tmp/3fs-clickhouse.xxx", nil)
 	s.MockLocalFS.On("WriteFile", "/tmp/3fs-clickhouse.xxx/config.xml",
 		mock.AnythingOfType("[]uint8"), os.FileMode(0644)).Return(nil)

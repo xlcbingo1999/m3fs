@@ -15,6 +15,7 @@
 package external
 
 import (
+	"context"
 	"os"
 
 	"github.com/stretchr/testify/mock"
@@ -29,7 +30,7 @@ type MockFS struct {
 }
 
 // MkdirTemp mock.
-func (m *MockFS) MkdirTemp(dir, prefix string) (string, error) {
+func (m *MockFS) MkdirTemp(ctx context.Context, dir, prefix string) (string, error) {
 	arg := m.Called(dir, prefix)
 	return arg.String(0), arg.Error(1)
 }
@@ -67,7 +68,7 @@ func (m *MockFS) IsNotExist(path string) (bool, error) {
 }
 
 // Sha256sum mock.
-func (m *MockFS) Sha256sum(path string) (string, error) {
+func (m *MockFS) Sha256sum(ctx context.Context, path string) (string, error) {
 	arg := m.Called(path)
 	return arg.String(0), arg.Error(1)
 }
@@ -75,4 +76,9 @@ func (m *MockFS) Sha256sum(path string) (string, error) {
 // Tar mock.
 func (m *MockFS) Tar(srcPaths []string, basePath, dstPath string) error {
 	return m.Called(srcPaths, basePath, dstPath).Error(0)
+}
+
+// ExtractTar mock.
+func (m *MockFS) ExtractTar(ctx context.Context, srcPath, dstDir string) error {
+	return m.Called(srcPath, dstDir).Error(0)
 }

@@ -180,12 +180,12 @@ func prepareCluster(ctx *cli.Context) error {
 	runnerTasks = append(runnerTasks, new(network.PrepareNetworkTask))
 
 	runner := task.NewRunner(cfg, runnerTasks...)
+	runner.Init()
 	if artifactPath != "" {
-		if err = runner.Store(task.RuntimeArtifactOutputPathKey, artifactPath); err != nil {
+		if err = runner.Store(task.RuntimeArtifactPathKey, artifactPath); err != nil {
 			return errors.Trace(err)
 		}
 	}
-	runner.Init()
 	if err = runner.Run(ctx.Context); err != nil {
 		return errors.Annotate(err, "prepare cluster")
 	}
