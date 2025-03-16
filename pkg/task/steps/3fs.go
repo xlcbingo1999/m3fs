@@ -92,7 +92,7 @@ type prepare3FSConfigStep struct {
 	rdmaListenPort       int
 	tcpListenPort        int
 	extraMainTomlData    map[string]any
-	extraConfigFiles     []*Extra3FSConfigFile
+	extraConfigFilesFunc func(*task.Runtime) []*Extra3FSConfigFile
 }
 
 func (s *prepare3FSConfigStep) getMoniterEndpoints() string {
@@ -228,11 +228,13 @@ func (s *prepare3FSConfigStep) genConfigs(tmpDir string) error {
 		return errors.Trace(err)
 	}
 
-	for _, extraCfg := range s.extraConfigFiles {
-		filePath := path.Join(tmpDir, extraCfg.FileName)
-		s.Logger.Infof("Save %s to %s", extraCfg.FileName, filePath)
-		if err = s.Runtime.LocalEm.FS.WriteFile(filePath, extraCfg.Data, os.FileMode(0644)); err != nil {
-			return errors.Trace(err)
+	if s.extraConfigFilesFunc != nil {
+		for _, extraCfg := range s.extraConfigFilesFunc(s.Runtime) {
+			filePath := path.Join(tmpDir, extraCfg.FileName)
+			s.Logger.Infof("Save %s to %s", extraCfg.FileName, filePath)
+			if err = s.Runtime.LocalEm.FS.WriteFile(filePath, extraCfg.Data, os.FileMode(0644)); err != nil {
+				return errors.Trace(err)
+			}
 		}
 	}
 
@@ -253,15 +255,15 @@ func (s *prepare3FSConfigStep) genFdbClusterFile(tmpDir string) error {
 
 // Prepare3FSConfigStepSetup is a struct that holds the configuration of the prepare3FSConfigStep.
 type Prepare3FSConfigStepSetup struct {
-	Service              string
-	ServiceWorkDir       string
-	MainAppTomlTmpl      []byte
-	MainLauncherTomlTmpl []byte
-	MainTomlTmpl         []byte
-	RDMAListenPort       int
-	TCPListenPort        int
-	ExtraMainTomlData    map[string]any
-	Extra3FSConfigFiles  []*Extra3FSConfigFile
+	Service                 string
+	ServiceWorkDir          string
+	MainAppTomlTmpl         []byte
+	MainLauncherTomlTmpl    []byte
+	MainTomlTmpl            []byte
+	RDMAListenPort          int
+	TCPListenPort           int
+	ExtraMainTomlData       map[string]any
+	Extra3FSConfigFilesFunc func(*task.Runtime) []*Extra3FSConfigFile
 }
 
 // NewPrepare3FSConfigStepFunc is prepare 3fs config step factory func.
@@ -276,7 +278,7 @@ func NewPrepare3FSConfigStepFunc(setup *Prepare3FSConfigStepSetup) func() task.S
 			rdmaListenPort:       setup.RDMAListenPort,
 			tcpListenPort:        setup.TCPListenPort,
 			extraMainTomlData:    setup.ExtraMainTomlData,
-			extraConfigFiles:     setup.Extra3FSConfigFiles,
+			extraConfigFilesFunc: setup.Extra3FSConfigFilesFunc,
 		}
 	}
 }
