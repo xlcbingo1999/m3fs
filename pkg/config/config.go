@@ -146,7 +146,7 @@ func (c *Config) SetValidate(workDir string) error {
 	}
 	if workDir != "" {
 		c.WorkDir = workDir
-	} else {
+	} else if c.WorkDir == "" {
 		var err error
 		c.WorkDir, err = os.Getwd()
 		if err != nil {
