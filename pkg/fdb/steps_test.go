@@ -23,7 +23,6 @@ import (
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
 	"github.com/open3fs/m3fs/pkg/external"
-	"github.com/open3fs/m3fs/pkg/image"
 	"github.com/open3fs/m3fs/pkg/task"
 	ttask "github.com/open3fs/m3fs/tests/task"
 )
@@ -94,7 +93,7 @@ func (s *runContainerStepSuite) SetupTest() {
 func (s *runContainerStepSuite) TestRunContainerStep() {
 	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return("", nil)
 	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.logDir}).Return("", nil)
-	img, err := image.GetImage("", "fdb")
+	img, err := s.Runtime.Cfg.Images.GetImage(config.ImageNameFdb)
 	s.NoError(err)
 	s.MockDocker.On("Run", &external.RunArgs{
 		Image:       img,
@@ -125,7 +124,7 @@ func (s *runContainerStepSuite) TestRunContainerStep() {
 func (s *runContainerStepSuite) TestRunContainerFailed() {
 	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.dataDir}).Return("", nil)
 	s.MockRunner.On("Exec", "mkdir", []string{"-p", s.logDir}).Return("", nil)
-	img, err := image.GetImage("", "fdb")
+	img, err := s.Runtime.Cfg.Images.GetImage(config.ImageNameFdb)
 	s.NoError(err)
 	s.MockDocker.On("Run", &external.RunArgs{
 		Image:       img,

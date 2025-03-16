@@ -18,8 +18,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -27,7 +29,6 @@ import (
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
 	"github.com/open3fs/m3fs/pkg/external"
-	"github.com/open3fs/m3fs/pkg/image"
 	"github.com/open3fs/m3fs/pkg/task"
 )
 
@@ -92,6 +93,17 @@ type prepare3FSConfigStep struct {
 	tcpListenPort        int
 	extraMainTomlData    map[string]any
 	extraConfigFiles     []*Extra3FSConfigFile
+}
+
+func (s *prepare3FSConfigStep) getMoniterEndpoints() string {
+	monitor := s.Runtime.Services.Monitor
+	endpoints := make([]string, len(monitor.Nodes))
+	for i, nodeName := range monitor.Nodes {
+		node := s.Runtime.Nodes[nodeName]
+		endpoints[i] = net.JoinHostPort(node.Host, strconv.Itoa(monitor.Port))
+	}
+
+	return strings.Join(endpoints, ",")
 }
 
 func (s *prepare3FSConfigStep) Execute(ctx context.Context) error {
@@ -192,9 +204,8 @@ func (s *prepare3FSConfigStep) genConfigs(tmpDir string) error {
 		return errors.Trace(err)
 	}
 
-	// TODO: read monitor remote IP from runtime
 	mainTmplData := map[string]any{
-		"MonitorRemoteIP":      "",
+		"MonitorRemoteIP":      s.getMoniterEndpoints(),
 		"RDMAListenPort":       s.rdmaListenPort,
 		"TCPListenPort":        s.tcpListenPort,
 		"MgmtdServerAddresses": mgmtdServerAddresses,
@@ -282,7 +293,7 @@ type run3FSContainerStep struct {
 
 func (s *run3FSContainerStep) Execute(ctx context.Context) error {
 	s.Logger.Infof("Starting %s container %s", s.service, s.containerName)
-	img, err := image.GetImage(s.Runtime.Cfg.Registry.CustomRegistry, s.imgName)
+	img, err := s.Runtime.Cfg.Images.GetImage(s.imgName)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -397,7 +408,7 @@ type upload3FSMainConfigStep struct {
 
 func (s *upload3FSMainConfigStep) Execute(ctx context.Context) error {
 	s.Logger.Infof("Upload %s main config", s.service)
-	img, err := image.GetImage(s.Runtime.Cfg.Registry.CustomRegistry, s.imgName)
+	img, err := s.Runtime.Cfg.Images.GetImage(s.imgName)
 	if err != nil {
 		return errors.Trace(err)
 	}

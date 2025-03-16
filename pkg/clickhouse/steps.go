@@ -27,9 +27,9 @@ import (
 	"time"
 
 	"github.com/open3fs/m3fs/pkg/common"
+	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
 	"github.com/open3fs/m3fs/pkg/external"
-	"github.com/open3fs/m3fs/pkg/image"
 	"github.com/open3fs/m3fs/pkg/task"
 )
 
@@ -143,7 +143,7 @@ func (s *startContainerStep) Execute(ctx context.Context) error {
 		return errors.Annotatef(err, "scp 3fs-monitor.sql")
 	}
 
-	img, err := image.GetImage(s.Runtime.Cfg.Registry.CustomRegistry, "clickhouse")
+	img, err := s.Runtime.Cfg.Images.GetImage(config.ImageNameClickhouse)
 	if err != nil {
 		return errors.Trace(err)
 	}

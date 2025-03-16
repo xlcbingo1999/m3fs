@@ -25,7 +25,6 @@ import (
 	"github.com/open3fs/m3fs/pkg/common"
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/external"
-	"github.com/open3fs/m3fs/pkg/image"
 	ttask "github.com/open3fs/m3fs/tests/task"
 )
 
@@ -96,7 +95,7 @@ func (s *startContainerStepSuite) TestStartContainerStep() {
 		"/root/3fs/clickhouse/config.d/config.xml").Return(nil)
 	s.MockRunner.On("Scp", "/tmp/3f-clickhouse.xxx/3fs-monitor.sql",
 		"/root/3fs/clickhouse/sql/3fs-monitor.sql").Return(nil)
-	img, err := image.GetImage("", "clickhouse")
+	img, err := s.Runtime.Cfg.Images.GetImage(config.ImageNameClickhouse)
 	s.NoError(err)
 	s.MockDocker.On("Run", &external.RunArgs{
 		Image:       img,

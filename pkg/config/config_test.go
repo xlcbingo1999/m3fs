@@ -191,3 +191,17 @@ func (s *configSuite) TestValidWithNoClientMountPoint() {
 
 	s.Error(cfg.SetValidate(""), "services.client.hostMountpoint is required")
 }
+
+func (s *configSuite) TestWithImageNoTag() {
+	cfg := s.newConfigWithDefaults()
+	cfg.Images.Fdb.Tag = ""
+
+	s.Error(cfg.SetValidate(""), "images.fdb.tag is required")
+}
+
+func (s *configSuite) TestWithImageNoRepo() {
+	cfg := s.newConfigWithDefaults()
+	cfg.Images.Fdb.Repo = ""
+
+	s.Error(cfg.SetValidate(""), "images.fdb.repo is required")
+}
