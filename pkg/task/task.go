@@ -118,3 +118,21 @@ func (s *BaseStep) Init(r *Runtime, em *external.Manager, node config.Node) {
 func (s *BaseStep) Execute(context.Context) error {
 	return nil
 }
+
+// LocalStep is an interface that defines the methods that all local steps must implement,
+type LocalStep interface {
+	Init(r *Runtime)
+	Execute(context.Context) error
+}
+
+// BaseLocalStep is a base local step.
+type BaseLocalStep struct {
+	Runtime *Runtime
+	Logger  *logrus.Logger
+}
+
+// Init initializes a base local step.
+func (s *BaseLocalStep) Init(r *Runtime) {
+	s.Runtime = r
+	s.Logger = logrus.StandardLogger()
+}

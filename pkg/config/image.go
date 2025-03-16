@@ -23,7 +23,7 @@ import (
 
 // defines image names
 const (
-	ImageNameFdb        = "fdb"
+	ImageNameFdb        = "foundationdb"
 	ImageNameClickhouse = "clickhouse"
 	ImageName3FS        = "3fs"
 )
@@ -42,20 +42,25 @@ type Images struct {
 	Fdb        Image  `yaml:"fdb"`
 }
 
-// GetImage get image path of target component
-func (i *Images) GetImage(imgName string) (string, error) {
-	var img Image
+func (i *Images) getImage(imgName string) (Image, error) {
 	switch imgName {
 	case ImageNameFdb:
-		img = i.Fdb
+		return i.Fdb, nil
 	case ImageName3FS:
-		img = i.FFFS
+		return i.FFFS, nil
 	case ImageNameClickhouse:
-		img = i.Clickhouse
+		return i.Clickhouse, nil
 	default:
-		return "", errors.Errorf("invalid image name %s", imgName)
+		return Image{}, errors.Errorf("invalid image name %s", imgName)
 	}
+}
 
+// GetImage get image path of target component
+func (i *Images) GetImage(imgName string) (string, error) {
+	img, err := i.getImage(imgName)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
 	imagePath := fmt.Sprintf("%s:%s", img.Repo, img.Tag)
 	if i.Registry != "" {
 		var err error
@@ -66,4 +71,13 @@ func (i *Images) GetImage(imgName string) (string, error) {
 	}
 
 	return imagePath, nil
+}
+
+// GetImageFileName gets image file name
+func (i Images) GetImageFileName(imgName string) (string, error) {
+	img, err := i.getImage(imgName)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	return fmt.Sprintf("%s_%s_amd64.docker", imgName, img.Tag), nil
 }

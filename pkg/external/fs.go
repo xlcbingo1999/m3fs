@@ -15,7 +15,14 @@
 package external
 
 import (
+	"archive/tar"
+	"compress/gzip"
+	"crypto/sha256"
+	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/open3fs/m3fs/pkg/errors"
 )
@@ -26,6 +33,11 @@ type FSInterface interface {
 	MkdirAll(string) error
 	RemoveAll(string) error
 	WriteFile(string, []byte, os.FileMode) error
+	DownloadFile(string, string) error
+	ReadRemoteFile(string) (string, error)
+	IsNotExist(string) (bool, error)
+	Sha256sum(string) (string, error)
+	Tar(srcPaths []string, basePath, dstPath string) error
 }
 
 type fsExternal struct {
@@ -72,6 +84,155 @@ func (fe *fsExternal) RemoveAll(dir string) error {
 		return errors.New("unimplemented")
 	}
 	return errors.Trace(os.RemoveAll(dir))
+}
+
+func (fe *fsExternal) DownloadFile(url, dstPath string) error {
+	if fe.returnUnimplemented {
+		return errors.New("unimplemented")
+	}
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fe.logger.Warnf("Failed to close http client: %v", err)
+		}
+	}()
+	outFile, err := os.Create(dstPath)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	defer func() {
+		if err := outFile.Close(); err != nil {
+			fe.logger.Warnf("Failed to close file: %v", err)
+		}
+	}()
+	_, err = io.Copy(outFile, resp.Body)
+	return err
+}
+
+func (fe *fsExternal) ReadRemoteFile(url string) (string, error) {
+	if fe.returnUnimplemented {
+		return "", errors.New("unimplemented")
+	}
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fe.logger.Warnf("Failed to close http client: %v", err)
+		}
+	}()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+
+	return string(bodyBytes), nil
+}
+
+func (fe *fsExternal) IsNotExist(path string) (bool, error) {
+	if fe.returnUnimplemented {
+		return false, errors.New("unimplemented")
+	}
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return true, nil
+	}
+	return false, nil
+}
+
+func (fe *fsExternal) Sha256sum(path string) (string, error) {
+	if fe.returnUnimplemented {
+		return "", errors.New("unimplemented")
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			fe.logger.Warnf("Failed to close file: %v", err)
+		}
+	}()
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, file); err != nil {
+		return "", errors.Trace(err)
+	}
+	return fmt.Sprintf("%x", hasher.Sum(nil)), nil
+}
+
+func (fe *fsExternal) Tar(srcPaths []string, basePath, dstPath string) error {
+	if fe.returnUnimplemented {
+		return errors.New("unimplemented")
+	}
+	outputFile, err := os.Create(dstPath)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	defer func() {
+		if err := outputFile.Close(); err != nil {
+			fe.logger.Warnf("Failed to close file: %v", err)
+		}
+	}()
+
+	gzipWriter := gzip.NewWriter(outputFile)
+	defer func() {
+		if err := gzipWriter.Close(); err != nil {
+			fe.logger.Warnf("Failed to close gzip writer: %v", err)
+		}
+	}()
+	tarWriter := tar.NewWriter(gzipWriter)
+	defer func() {
+		if err := tarWriter.Close(); err != nil {
+			fe.logger.Warnf("Failed to close tar writer: %v", err)
+		}
+	}()
+
+	for _, srcPath := range srcPaths {
+		if err := fe.addToTar(tarWriter, srcPath, basePath); err != nil {
+			return errors.Trace(err)
+		}
+	}
+	return nil
+}
+
+func (fe *fsExternal) addToTar(tarWriter *tar.Writer, srcPath, basePath string) error {
+	file, err := os.Open(srcPath)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			fe.logger.Warnf("Failed to close file: %v", err)
+		}
+	}()
+
+	relPath, err := filepath.Rel(basePath, srcPath)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	relPath = filepath.ToSlash(relPath)
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return errors.Trace(err)
+	}
+	header, err := tar.FileInfoHeader(fileInfo, filepath.Base(srcPath))
+	if err != nil {
+		return errors.Trace(err)
+	}
+	header.Name = relPath
+	if err := tarWriter.WriteHeader(header); err != nil {
+		return errors.Trace(err)
+	}
+	if _, err := io.Copy(tarWriter, file); err != nil {
+		return errors.Trace(err)
+	}
+
+	return nil
 }
 
 func init() {
