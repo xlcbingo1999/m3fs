@@ -27,6 +27,7 @@ import (
 var (
 	debug          bool
 	configFilePath string
+	artifactPath   string
 	outputPath     string
 	tmpDir         string
 	workDir        string

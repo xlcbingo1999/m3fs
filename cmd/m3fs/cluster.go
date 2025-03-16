@@ -22,6 +22,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	fsclient "github.com/open3fs/m3fs/pkg/3fs_client"
+	"github.com/open3fs/m3fs/pkg/artifact"
 	"github.com/open3fs/m3fs/pkg/clickhouse"
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
@@ -90,6 +91,13 @@ var clusterCmd = &cli.Command{
 					Usage:       "Path to the cluster configuration file",
 					Destination: &configFilePath,
 					Required:    true,
+				},
+				&cli.StringFlag{
+					Name:        "artifact",
+					Aliases:     []string{"a"},
+					Usage:       "Path to the 3fs artifact",
+					Destination: &artifactPath,
+					Required:    false,
 				},
 			},
 		},
@@ -165,9 +173,20 @@ func prepareCluster(ctx *cli.Context) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	runner := task.NewRunner(cfg,
-		new(network.PrepareNetworkTask),
-	)
+	runnerTasks := []task.Interface{}
+	if artifactPath != "" {
+		runnerTasks = append(runnerTasks, new(artifact.ImportArtifactTask))
+	}
+	switch cfg.NetworkType {
+	case config.NetworkTypeRXE:
+		runnerTasks = append(runnerTasks, new(network.PrepareNetworkTask))
+	}
+	runner := task.NewRunner(cfg, runnerTasks...)
+	if artifactPath != "" {
+		if err = runner.Store(task.RuntimeArtifactOutputPathKey, artifactPath); err != nil {
+			return errors.Trace(err)
+		}
+	}
 	runner.Init()
 	if err = runner.Run(ctx.Context); err != nil {
 		return errors.Annotate(err, "prepare cluster")

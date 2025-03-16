@@ -49,3 +49,25 @@ func (t *ExportArtifactTask) Run(ctx context.Context) error {
 	}
 	return nil
 }
+
+// ImportArtifactTask is a task for importing the 3fs artifact.
+type ImportArtifactTask struct {
+	task.BaseTask
+}
+
+// Init initializes the task.
+func (t *ImportArtifactTask) Init(r *task.Runtime) {
+	t.BaseTask.Init(r)
+	t.BaseTask.SetName("ImportArtifactTask")
+	t.SetSteps([]task.StepConfig{
+		{
+			Nodes:   r.Cfg.Nodes,
+			NewStep: func() task.Step { return new(distributeArtifactStep) },
+		},
+		{
+			Nodes:    r.Cfg.Nodes,
+			Parallel: true,
+			NewStep:  func() task.Step { return new(importArtifactStep) },
+		},
+	})
+}
