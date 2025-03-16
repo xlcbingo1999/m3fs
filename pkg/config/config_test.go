@@ -47,17 +47,12 @@ func (s *configSuite) newConfig() *Config {
 
 func (s *configSuite) newConfigWithDefaults() *Config {
 	cfg := s.newConfig()
-	cfg.Services.Fdb.WorkDir = s.fdbDir
-	cfg.Services.Clickhouse.WorkDir = s.ckDir
 	cfg.Services.Fdb.Port = 49990
 	cfg.Nodes[0].Port = 123
-	cfg.Services.Mgmtd.WorkDir = "/root/mgmtd"
 	cfg.Services.Mgmtd.RDMAListenPort = 8033
 	cfg.Services.Mgmtd.TCPListenPort = 9003
-	cfg.Services.Meta.WorkDir = "/rootxx/meta"
 	cfg.Services.Meta.RDMAListenPort = 8011
 	cfg.Services.Meta.TCPListenPort = 9301
-	cfg.Services.Storage.WorkDir = "/root/storage"
 	cfg.Services.Storage.RDMAListenPort = 8092
 	cfg.Services.Storage.TCPListenPort = 9072
 	cfg.Services.Storage.DiskNumPerNode = 3
@@ -67,24 +62,19 @@ func (s *configSuite) newConfigWithDefaults() *Config {
 
 func (s *configSuite) TestValidateConfig() {
 	cfg := s.newConfig()
-	cfg.Services.Fdb.WorkDir = s.fdbDir
-	cfg.Services.Clickhouse.WorkDir = s.ckDir
-	cfg.Services.Monitor.WorkDir = "/monitor"
+	cfg.WorkDir = "/root/3fs"
 	cfg.Services.Fdb.Port = 49990
-	cfg.Services.Mgmtd.WorkDir = "/root/mgmtd"
 	cfg.Services.Mgmtd.RDMAListenPort = 8000
 	cfg.Services.Mgmtd.TCPListenPort = 9000
-	cfg.Services.Meta.WorkDir = "/root/meta"
 	cfg.Services.Meta.RDMAListenPort = 8701
 	cfg.Services.Meta.TCPListenPort = 9091
-	cfg.Services.Storage.WorkDir = "/root/storage"
 	cfg.Services.Storage.RDMAListenPort = 8702
 	cfg.Services.Storage.TCPListenPort = 9092
 	cfg.Services.Storage.DiskNumPerNode = 3
 	cfg.Nodes[0].Port = 123
 	cfgExp := *cfg
 
-	s.NoError(cfg.SetValidate(""))
+	s.NoError(cfg.SetValidate("/root/3fs"))
 
 	s.Equal(&cfgExp, cfg)
 }
@@ -94,10 +84,6 @@ func (s *configSuite) TestSetConfigDefaults() {
 
 	s.NoError(cfg.SetValidate("/root"))
 
-	s.Equal(cfg.Services.Fdb.WorkDir, "/root/fdb")
-	s.Equal(cfg.Services.Clickhouse.WorkDir, "/root/clickhouse")
-	s.Equal(cfg.Services.Monitor.WorkDir, "/root/monitor")
-	s.Equal(cfg.Services.Mgmtd.WorkDir, "/root/mgmtd")
 	s.Equal(cfg.Services.Mgmtd.RDMAListenPort, 8000)
 	s.Equal(cfg.Services.Mgmtd.TCPListenPort, 9000)
 	s.Equal(cfg.Services.Fdb.Port, 4500)

@@ -102,7 +102,7 @@ func (s *initClusterStep) Execute(ctx context.Context) error {
 		HostNetwork: true,
 		Volumes: []*external.VolumeArgs{
 			{
-				Source: path.Join(mgmtd.WorkDir, "config.d"),
+				Source: path.Join(getServiceWorkDir(s.Runtime.WorkDir), "config.d"),
 				Target: "/opt/3fs/etc",
 			},
 		},

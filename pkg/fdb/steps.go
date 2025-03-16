@@ -38,17 +38,22 @@ func (s *genClusterFileContentStep) Execute(context.Context) error {
 	return nil
 }
 
+func getServiceWorkDir(workDir string) string {
+	return path.Join(workDir, "fdb")
+}
+
 type runContainerStep struct {
 	task.BaseStep
 }
 
 func (s *runContainerStep) Execute(ctx context.Context) error {
-	dataDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "data")
+	workDir := getServiceWorkDir(s.Runtime.WorkDir)
+	dataDir := path.Join(workDir, "data")
 	_, err := s.Em.Runner.Exec(ctx, "mkdir", "-p", dataDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", dataDir)
 	}
-	logDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "logs")
+	logDir := path.Join(workDir, "logs")
 	_, err = s.Em.Runner.Exec(ctx, "mkdir", "-p", logDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", logDir)
@@ -145,14 +150,15 @@ func (s *rmContainerStep) Execute(ctx context.Context) error {
 		return errors.Trace(err)
 	}
 
-	dataDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "data")
+	workDir := getServiceWorkDir(s.Runtime.WorkDir)
+	dataDir := path.Join(workDir, "data")
 	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", dataDir)
 	if err != nil {
 		return errors.Annotatef(err, "rm %s", dataDir)
 	}
 	s.Logger.Infof("Removed fdb container data dir %s", dataDir)
 
-	logDir := path.Join(s.Runtime.Services.Fdb.WorkDir, "logs")
+	logDir := path.Join(workDir, "logs")
 	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", logDir)
 	if err != nil {
 		return errors.Annotatef(err, "rm %s", logDir)

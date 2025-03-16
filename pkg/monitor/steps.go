@@ -33,6 +33,10 @@ func init() {
 	}
 }
 
+func getServiceWorkDir(workDir string) string {
+	return path.Join(workDir, "monitor")
+}
+
 type genMonitorConfigStep struct {
 	task.BaseStep
 }
@@ -82,7 +86,8 @@ type runContainerStep struct {
 }
 
 func (s *runContainerStep) Execute(ctx context.Context) error {
-	etcDir := path.Join(s.Runtime.Services.Monitor.WorkDir, "etc")
+	workDir := getServiceWorkDir(s.Runtime.WorkDir)
+	etcDir := path.Join(workDir, "etc")
 	_, err := s.Em.Runner.Exec(ctx, "mkdir", "-p", etcDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", etcDir)
@@ -93,7 +98,7 @@ func (s *runContainerStep) Execute(ctx context.Context) error {
 	if err := s.Em.Runner.Scp(localConfigFile, remoteConfigFile); err != nil {
 		return errors.Annotatef(err, "scp monitor_collector_main.toml")
 	}
-	logDir := path.Join(s.Runtime.Services.Monitor.WorkDir, "log")
+	logDir := path.Join(workDir, "log")
 	_, err = s.Em.Runner.Exec(ctx, "mkdir", "-p", logDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", logDir)
@@ -146,14 +151,15 @@ func (s *rmContainerStep) Execute(ctx context.Context) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	etcDir := path.Join(s.Runtime.Services.Monitor.WorkDir, "etc")
+	workDir := getServiceWorkDir(s.Runtime.WorkDir)
+	etcDir := path.Join(workDir, "etc")
 	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", etcDir)
 	if err != nil {
 		return errors.Annotatef(err, "rm %s", etcDir)
 	}
 	s.Logger.Infof("Removed monitor container etc dir %s", etcDir)
 
-	logDir := path.Join(s.Runtime.Services.Monitor.WorkDir, "log")
+	logDir := path.Join(workDir, "log")
 	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", logDir)
 	if err != nil {
 		return errors.Annotatef(err, "rm %s", logDir)

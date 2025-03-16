@@ -1,7 +1,7 @@
 package config
 
 import (
-	"path"
+	"os"
 	"time"
 
 	"github.com/open3fs/m3fs/pkg/errors"
@@ -45,7 +45,6 @@ type Fdb struct {
 	ContainerName      string `yaml:"containerName"`
 	Nodes              []string
 	Port               int
-	WorkDir            string `yaml:"workDir"`
 	WaitClusterTimeout time.Duration
 }
 
@@ -53,7 +52,6 @@ type Fdb struct {
 type Clickhouse struct {
 	ContainerName string `yaml:"containerName"`
 	Nodes         []string
-	WorkDir       string `yaml:"workDir"`
 	Db            string `yaml:"db"`
 	User          string `yaml:"user"`
 	Password      string `yaml:"password"`
@@ -64,33 +62,29 @@ type Clickhouse struct {
 type Monitor struct {
 	ContainerName string `yaml:"containerName"`
 	Nodes         []string
-	WorkDir       string `yaml:"workDir"`
-	Port          int    `yaml:"port"`
+	Port          int `yaml:"port"`
 }
 
 // Mgmtd is the 3fs mgmtd service config definition
 type Mgmtd struct {
 	ContainerName  string `yaml:"containerName"`
 	Nodes          []string
-	WorkDir        string `yaml:"workDir,omitempty"`
-	RDMAListenPort int    `yaml:"rdmaListenPort,omitempty"`
-	TCPListenPort  int    `yaml:"tcpListenPort,omitempty"`
+	RDMAListenPort int `yaml:"rdmaListenPort,omitempty"`
+	TCPListenPort  int `yaml:"tcpListenPort,omitempty"`
 }
 
 // Meta is the 3fs meta service config definition
 type Meta struct {
 	ContainerName  string `yaml:"containerName"`
 	Nodes          []string
-	WorkDir        string `yaml:"workDir,omitempty"`
-	RDMAListenPort int    `yaml:"rdmaListenPort,omitempty"`
-	TCPListenPort  int    `yaml:"tcpListenPort,omitempty"`
+	RDMAListenPort int `yaml:"rdmaListenPort,omitempty"`
+	TCPListenPort  int `yaml:"tcpListenPort,omitempty"`
 }
 
 // Storage is the 3fs storage config definition
 type Storage struct {
 	ContainerName       string `yaml:"containerName"`
 	Nodes               []string
-	WorkDir             string   `yaml:"workDir,omitempty"`
 	DiskType            DiskType `yaml:"diskType,omitempty"`
 	DiskNumPerNode      int      `yaml:"diskNumPerNode,omitempty"`
 	RDMAListenPort      int      `yaml:"rdmaListenPort,omitempty"`
@@ -143,6 +137,12 @@ func (c *Config) SetValidate(workDir string) error {
 	}
 	if workDir != "" {
 		c.WorkDir = workDir
+	} else {
+		var err error
+		c.WorkDir, err = os.Getwd()
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 	if !networkTypes.Contains(c.NetworkType) {
 		return errors.Errorf("invalid network type: %s", c.NetworkType)
@@ -221,21 +221,7 @@ func (c *Config) SetValidate(workDir string) error {
 	if c.Services.Fdb.Port == 0 {
 		c.Services.Fdb.Port = 4500
 	}
-	if c.Services.Fdb.WorkDir == "" {
-		c.Services.Fdb.WorkDir = path.Join(c.WorkDir, "fdb")
-	}
 
-	if c.Services.Clickhouse.WorkDir == "" {
-		c.Services.Clickhouse.WorkDir = path.Join(c.WorkDir, "clickhouse")
-	}
-
-	if c.Services.Monitor.WorkDir == "" {
-		c.Services.Monitor.WorkDir = path.Join(c.WorkDir, "monitor")
-	}
-
-	if c.Services.Mgmtd.WorkDir == "" {
-		c.Services.Mgmtd.WorkDir = path.Join(c.WorkDir, "mgmtd")
-	}
 	if c.Services.Mgmtd.RDMAListenPort == 0 {
 		c.Services.Mgmtd.RDMAListenPort = 8000
 	}
@@ -243,9 +229,6 @@ func (c *Config) SetValidate(workDir string) error {
 		c.Services.Mgmtd.TCPListenPort = 9000
 	}
 
-	if c.Services.Meta.WorkDir == "" {
-		c.Services.Meta.WorkDir = path.Join(c.WorkDir, "meta")
-	}
 	if c.Services.Meta.RDMAListenPort == 0 {
 		c.Services.Meta.RDMAListenPort = 8001
 	}
@@ -255,9 +238,6 @@ func (c *Config) SetValidate(workDir string) error {
 
 	if !diskTypes.Contains(c.Services.Storage.DiskType) {
 		return errors.Errorf("invalid disk type of storage service: %s", c.Services.Storage.DiskType)
-	}
-	if c.Services.Storage.WorkDir == "" {
-		c.Services.Storage.WorkDir = path.Join(c.WorkDir, "storage")
 	}
 	if c.Services.Storage.RDMAListenPort == 0 {
 		c.Services.Storage.RDMAListenPort = 8002
@@ -307,6 +287,9 @@ func NewConfigWithDefaults() *Config {
 			},
 			Clickhouse: Clickhouse{
 				ContainerName: "3fs-clickhouse",
+				Db:            "3fs",
+				User:          "default",
+				Password:      "password",
 				TCPPort:       8999,
 			},
 			Monitor: Monitor{

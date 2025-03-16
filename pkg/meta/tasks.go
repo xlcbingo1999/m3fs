@@ -1,6 +1,8 @@
 package meta
 
 import (
+	"path"
+
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/task"
 	"github.com/open3fs/m3fs/pkg/task/steps"
@@ -12,6 +14,10 @@ const (
 	serviceType = "META"
 )
 
+func getServiceWorkDir(workDir string) string {
+	return path.Join(workDir, "meta")
+}
+
 // CreateMetaServiceTask is a task for creating 3fs meta services.
 type CreateMetaServiceTask struct {
 	task.BaseTask
@@ -21,6 +27,8 @@ type CreateMetaServiceTask struct {
 func (t *CreateMetaServiceTask) Init(r *task.Runtime) {
 	t.BaseTask.Init(r)
 	t.BaseTask.SetName("CreateMetaServiceTask")
+
+	workDir := getServiceWorkDir(r.WorkDir)
 	nodes := make([]config.Node, len(r.Cfg.Services.Meta.Nodes))
 	for i, node := range r.Cfg.Services.Meta.Nodes {
 		nodes[i] = r.Nodes[node]
@@ -35,7 +43,7 @@ func (t *CreateMetaServiceTask) Init(r *task.Runtime) {
 			Parallel: true,
 			NewStep: steps.NewPrepare3FSConfigStepFunc(&steps.Prepare3FSConfigStepSetup{
 				Service:              ServiceName,
-				ServiceWorkDir:       r.Services.Meta.WorkDir,
+				ServiceWorkDir:       workDir,
 				MainAppTomlTmpl:      MetaMainAppTomlTmpl,
 				MainLauncherTomlTmpl: MetaMainLauncherTomlTmpl,
 				MainTomlTmpl:         MetaMainTomlTmpl,
@@ -49,7 +57,7 @@ func (t *CreateMetaServiceTask) Init(r *task.Runtime) {
 				"3fs",
 				r.Services.Meta.ContainerName,
 				ServiceName,
-				r.Services.Meta.WorkDir,
+				workDir,
 				serviceType,
 			),
 		},
@@ -61,7 +69,7 @@ func (t *CreateMetaServiceTask) Init(r *task.Runtime) {
 					ImgName:       "3fs",
 					ContainerName: r.Services.Meta.ContainerName,
 					Service:       ServiceName,
-					WorkDir:       r.Services.Meta.WorkDir,
+					WorkDir:       workDir,
 				},
 			),
 		},
@@ -88,7 +96,7 @@ func (t *DeleteMetaServiceTask) Init(r *task.Runtime) {
 			NewStep: steps.NewRm3FSContainerStepFunc(
 				r.Services.Meta.ContainerName,
 				ServiceName,
-				r.Services.Meta.WorkDir),
+				getServiceWorkDir(r.WorkDir)),
 		},
 	})
 }

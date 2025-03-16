@@ -70,9 +70,8 @@ func (s *runContainerStepSuite) SetupTest() {
 	s.StepSuite.SetupTest()
 
 	s.step = &runContainerStep{}
-	s.Cfg.Services.Fdb.WorkDir = "/var/fdb"
-	s.dataDir = "/var/fdb/data"
-	s.logDir = "/var/fdb/logs"
+	s.dataDir = "/root/3fs/fdb/data"
+	s.logDir = "/root/3fs/fdb/logs"
 	s.SetupRuntime()
 	s.step.Init(s.Runtime, s.MockEm, config.Node{})
 	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, "xxxx")
@@ -219,9 +218,8 @@ func (s *rmContainerStepSuite) SetupTest() {
 	s.StepSuite.SetupTest()
 
 	s.step = &rmContainerStep{}
-	s.Cfg.Services.Fdb.WorkDir = "/var/fdb"
-	s.dataDir = "/var/fdb/data"
-	s.logDir = "/var/fdb/logs"
+	s.dataDir = "/root/3fs/fdb/data"
+	s.logDir = "/root/3fs/fdb/logs"
 	s.SetupRuntime()
 	s.step.Init(s.Runtime, s.MockEm, config.Node{})
 	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, "xxxx")

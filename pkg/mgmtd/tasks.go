@@ -1,6 +1,8 @@
 package mgmtd
 
 import (
+	"path"
+
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/task"
 	"github.com/open3fs/m3fs/pkg/task/steps"
@@ -8,6 +10,10 @@ import (
 
 // ServiceName is the name of the mgmtd service.
 const ServiceName = "mgmtd_main"
+
+func getServiceWorkDir(workDir string) string {
+	return path.Join(workDir, "mgmtd")
+}
 
 // CreateMgmtdServiceTask is a task for creating 3fs mgmtd services.
 type CreateMgmtdServiceTask struct {
@@ -36,7 +42,7 @@ func (t *CreateMgmtdServiceTask) Init(r *task.Runtime) {
 			Parallel: true,
 			NewStep: steps.NewPrepare3FSConfigStepFunc(&steps.Prepare3FSConfigStepSetup{
 				Service:              ServiceName,
-				ServiceWorkDir:       r.Services.Mgmtd.WorkDir,
+				ServiceWorkDir:       getServiceWorkDir(r.WorkDir),
 				MainAppTomlTmpl:      MgmtdMainAppTomlTmpl,
 				MainLauncherTomlTmpl: MgmtdMainLauncherTomlTmpl,
 				MainTomlTmpl:         MgmtdMainTomlTmpl,
@@ -56,7 +62,7 @@ func (t *CreateMgmtdServiceTask) Init(r *task.Runtime) {
 					ImgName:       "3fs",
 					ContainerName: r.Services.Mgmtd.ContainerName,
 					Service:       ServiceName,
-					WorkDir:       r.Services.Mgmtd.WorkDir,
+					WorkDir:       getServiceWorkDir(r.WorkDir),
 				}),
 		},
 	})
@@ -81,7 +87,7 @@ func (t *DeleteMgmtdServiceTask) Init(r *task.Runtime) {
 			NewStep: steps.NewRm3FSContainerStepFunc(
 				r.Services.Mgmtd.ContainerName,
 				ServiceName,
-				r.Services.Mgmtd.WorkDir),
+				getServiceWorkDir(r.WorkDir)),
 		},
 	})
 }

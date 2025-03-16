@@ -61,8 +61,7 @@ func (s *initClusterStepSuite) SetupTest() {
 	s.StepSuite.SetupTest()
 
 	s.step = &initClusterStep{}
-	s.Cfg.Services.Mgmtd.WorkDir = "/var/mgmtd"
-	s.configDir = "/var/mgmtd/config.d"
+	s.configDir = "/root/3fs/mgmtd/config.d"
 	s.SetupRuntime()
 	s.step.Init(s.Runtime, s.MockEm, config.Node{})
 	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, "xxxx")
