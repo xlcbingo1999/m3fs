@@ -127,7 +127,7 @@ event_ack_batch = 128
 max_rd_atomic = 16
 max_rdma_wr = 128
 max_rdma_wr_per_post = 32
-max_sge = 16
+max_sge = 1
 min_rnr_timer = 1
 record_bytes_per_peer = false
 record_latency_per_peer = false
@@ -185,7 +185,7 @@ event_ack_batch = 128
 max_rd_atomic = 16
 max_rdma_wr = 128
 max_rdma_wr_per_post = 32
-max_sge = 16
+max_sge = 1
 min_rnr_timer = 1
 record_bytes_per_peer = false
 record_latency_per_peer = false
@@ -448,7 +448,7 @@ enable_work_stealing = false
 queue_size = 1024
 
 [server.targets]
-allow_disk_without_uuid = false
+allow_disk_without_uuid = true
 collect_all_fds = true
 create_engine_path = true
 space_info_cache_timeout = '5s'
