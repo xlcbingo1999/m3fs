@@ -17,9 +17,11 @@ package task
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/open3fs/m3fs/pkg/common"
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
 	"github.com/open3fs/m3fs/pkg/external"
@@ -65,19 +67,45 @@ func (t *BaseTask) Name() string {
 	return t.name
 }
 
+func (t *BaseTask) newStepExecuter(newStepFunc func() Step) func(context.Context, config.Node) error {
+	return func(ctx context.Context, node config.Node) error {
+		step := newStepFunc()
+		em, err := external.NewRemoteRunnerManager(&node)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		step.Init(t.Runtime, em, node)
+		return errors.Trace(step.Execute(ctx))
+	}
+}
+
 // ExecuteSteps executes all the steps of the task.
 func (t *BaseTask) ExecuteSteps(ctx context.Context) error {
-	// TODO: support parallel steps
 	for _, stepCfg := range t.steps {
-		for _, node := range stepCfg.Nodes {
-			step := stepCfg.NewStep()
-			em, err := external.NewRemoteRunnerManager(&node)
-			if err != nil {
-				return errors.Trace(err)
+		executor := t.newStepExecuter(stepCfg.NewStep)
+		if stepCfg.Parallel && len(stepCfg.Nodes) > 1 {
+			workerPool := common.NewWorkerPool(executor, len(stepCfg.Nodes))
+			workerPool.Start(ctx)
+			for _, node := range stepCfg.Nodes {
+				workerPool.Add(node)
 			}
-			step.Init(t.Runtime, em, node)
-			if err := step.Execute(ctx); err != nil {
-				return err
+			workerPool.Join()
+			errs := workerPool.Errors()
+			if len(errs) > 0 {
+				if logrus.StandardLogger().Level == logrus.DebugLevel {
+					errorsTrace := make([]string, len(errs))
+					for _, err := range errs {
+						errorsTrace = append(errorsTrace, errors.StackTrace(err))
+					}
+					logrus.Debugf("Run step failed, output: %s", strings.Join(errorsTrace, "\n"))
+				}
+				return errors.Trace(errs[0])
+			}
+		} else {
+			for _, node := range stepCfg.Nodes {
+				if err := executor(ctx, node); err != nil {
+					return errors.Trace(err)
+				}
 			}
 		}
 	}
