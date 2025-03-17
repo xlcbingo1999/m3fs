@@ -263,6 +263,7 @@ func (s *rm3FSContainerStepSuite) SetupTest() {
 func (s *rm3FSContainerStepSuite) TestRmContainerStep() {
 	s.MockDocker.On("Rm", s.Cfg.Services.Mgmtd.ContainerName, true).Return("", nil)
 	s.MockRunner.On("Exec", "rm", []string{"-rf", s.configDir}).Return("", nil)
+	s.MockRunner.On("Exec", "rm", []string{"-rf", "/root/3fs/mgmtd/log"}).Return("", nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 

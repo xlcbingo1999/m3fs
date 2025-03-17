@@ -84,6 +84,8 @@ type Monitor struct {
 type Mgmtd struct {
 	ContainerName  string `yaml:"containerName"`
 	Nodes          []string
+	ChunkSize      int `yaml:"chunkSize"`
+	StripeSize     int `yaml:"stripeSize"`
 	RDMAListenPort int `yaml:"rdmaListenPort,omitempty"`
 	TCPListenPort  int `yaml:"tcpListenPort,omitempty"`
 }
@@ -245,6 +247,12 @@ func (c *Config) SetValidate(workDir string) error {
 	if c.Services.Meta.TCPListenPort == 0 {
 		c.Services.Meta.TCPListenPort = 9001
 	}
+	if c.Services.Mgmtd.ChunkSize == 0 {
+		c.Services.Mgmtd.ChunkSize = 1048576
+	}
+	if c.Services.Mgmtd.StripeSize == 0 {
+		c.Services.Mgmtd.StripeSize = 16
+	}
 
 	if !diskTypes.Contains(c.Services.Storage.DiskType) {
 		return errors.Errorf("invalid disk type of storage service: %s", c.Services.Storage.DiskType)
@@ -342,6 +350,8 @@ func NewConfigWithDefaults() *Config {
 			},
 			Mgmtd: Mgmtd{
 				ContainerName:  "3fs-mgmtd",
+				ChunkSize:      1048576,
+				StripeSize:     16,
 				RDMAListenPort: 8000,
 				TCPListenPort:  9000,
 			},

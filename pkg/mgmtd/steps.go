@@ -119,7 +119,8 @@ func (s *initClusterStep) Execute(ctx context.Context) error {
 		Command: []string{
 			"/opt/3fs/bin/admin_cli",
 			"-cfg", "/opt/3fs/etc/admin_cli.toml",
-			"'init-cluster --mgmtd /opt/3fs/etc/mgmtd_main.toml 1 1048576 16'"},
+			fmt.Sprintf("'init-cluster --mgmtd /opt/3fs/etc/mgmtd_main.toml 1 %d %d'",
+				mgmtd.ChunkSize, mgmtd.StripeSize)},
 		HostNetwork: true,
 		Volumes: []*external.VolumeArgs{
 			{
