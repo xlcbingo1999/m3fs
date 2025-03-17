@@ -191,7 +191,7 @@ func (s *distributeArtifactStep) Execute(ctx context.Context) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	s.Runtime.Store(task.RuntimeArtifactTmpDirKey, tempDir)
+	s.Runtime.Store(s.GetNodeKey(task.RuntimeArtifactTmpDirKey), tempDir)
 
 	s.Logger.Infof("Extracting the artifact to %s on %s", tempDir, s.Node.Name)
 	if err = s.Em.FS.ExtractTar(ctx, dstPath, tempDir); err != nil {
@@ -205,9 +205,10 @@ type importArtifactStep struct {
 }
 
 func (s *importArtifactStep) Execute(ctx context.Context) error {
-	tempDir, ok := s.Runtime.LoadString(task.RuntimeArtifactTmpDirKey)
+	tempDir, ok := s.Runtime.LoadString(s.GetNodeKey(task.RuntimeArtifactTmpDirKey))
 	if !ok {
-		return errors.Errorf("Failed to get value of %s", task.RuntimeArtifactSha256sumKey)
+		return errors.Errorf("Failed to get value of %s",
+			s.GetNodeKey(task.RuntimeArtifactTmpDirKey))
 	}
 	imageNames := []string{
 		config.ImageNameFdb,
@@ -254,9 +255,10 @@ type removeArtifactStep struct {
 }
 
 func (s *removeArtifactStep) Execute(ctx context.Context) error {
-	tempDir, ok := s.Runtime.LoadString(task.RuntimeArtifactTmpDirKey)
+	tempDir, ok := s.Runtime.LoadString(s.GetNodeKey(task.RuntimeArtifactTmpDirKey))
 	if !ok {
-		return errors.Errorf("Failed to get value of %s", task.RuntimeArtifactSha256sumKey)
+		return errors.Errorf("Failed to get value of %s",
+			s.GetNodeKey(task.RuntimeArtifactTmpDirKey))
 	}
 	_, err := s.Em.Runner.Exec(ctx, "rm", "-rf", tempDir)
 	if err != nil {

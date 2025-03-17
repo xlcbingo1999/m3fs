@@ -16,6 +16,7 @@ package task
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/sirupsen/logrus"
 
@@ -103,6 +104,11 @@ type BaseStep struct {
 	Runtime *Runtime
 	Node    config.Node
 	Logger  *logrus.Logger
+}
+
+// GetNodeKey returns key for the node.
+func (s *BaseStep) GetNodeKey(key string) string {
+	return fmt.Sprintf("%s/%s", key, s.Node.Name)
 }
 
 // Init initializes the step with the external manager and the configuration.

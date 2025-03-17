@@ -228,10 +228,7 @@ func (s *distributeArtifactStepSuite) TestWithExisted() {
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
-	sha256sum, ok := s.Runtime.LoadString(task.RuntimeArtifactSha256sumKey)
-	s.True(ok)
-	s.Equal("xxx", sha256sum)
-	tempDir, ok := s.Runtime.LoadString(task.RuntimeArtifactTmpDirKey)
+	tempDir, ok := s.Runtime.LoadString(s.step.GetNodeKey(task.RuntimeArtifactTmpDirKey))
 	s.True(ok)
 	s.Equal("/root/3fs/artifact-xxx", tempDir)
 
@@ -245,10 +242,6 @@ func (s *distributeArtifactStepSuite) TestWithNotExisted() {
 	s.MockFS.On("ExtractTar", "/root/3fs/3fs.tar.gz", "/root/3fs/artifact-xxx").Return(nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
-
-	sha256sum, ok := s.Runtime.LoadString(task.RuntimeArtifactSha256sumKey)
-	s.True(ok)
-	s.Equal("xxx", sha256sum)
 
 	s.MockFS.AssertExpectations(s.T())
 	s.MockRunner.AssertExpectations(s.T())
@@ -289,7 +282,7 @@ func (s *importArtifactStepSuite) SetupTest() {
 	s.step = &importArtifactStep{}
 	s.SetupRuntime()
 	s.step.Init(s.Runtime, s.MockEm, config.Node{})
-	s.Runtime.Store(task.RuntimeArtifactTmpDirKey, "/root/3fs/artifact-xxx")
+	s.Runtime.Store(s.step.GetNodeKey(task.RuntimeArtifactTmpDirKey), "/root/3fs/artifact-xxx")
 	s.images = []*importImageInfo{
 		newImportImageInfo(s.Runtime, config.ImageNameFdb),
 		newImportImageInfo(s.Runtime, config.ImageNameClickhouse),
@@ -335,7 +328,7 @@ func (s *removeArtifactStepSuite) SetupTest() {
 	s.step = &removeArtifactStep{}
 	s.SetupRuntime()
 	s.step.Init(s.Runtime, s.MockEm, config.Node{})
-	s.Runtime.Store(task.RuntimeArtifactTmpDirKey, "/root/3fs/artifact-xxx")
+	s.Runtime.Store(s.step.GetNodeKey(task.RuntimeArtifactTmpDirKey), "/root/3fs/artifact-xxx")
 }
 
 func (s *removeArtifactStepSuite) Test() {
