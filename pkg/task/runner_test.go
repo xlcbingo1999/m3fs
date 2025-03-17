@@ -39,6 +39,7 @@ func (s *runnerSuite) SetupTest() {
 
 func (s *runnerSuite) TestInit() {
 	s.mockTask.On("Init", mock.AnythingOfType("*task.Runtime"))
+	s.mockTask.On("Name").Return("mockTask")
 
 	s.runner.Init()
 
@@ -47,6 +48,7 @@ func (s *runnerSuite) TestInit() {
 
 func (s *runnerSuite) TestRegisterAfterInit() {
 	s.TestInit()
+	s.mockTask.On("Name").Return("mockTask")
 
 	s.Error(s.runner.Register(s.mockTask), "runner has been initialized")
 }

@@ -25,11 +25,12 @@ import (
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
 	"github.com/open3fs/m3fs/pkg/external"
+	"github.com/open3fs/m3fs/pkg/log"
 )
 
 // Interface defines the interface that all tasks must implement.
 type Interface interface {
-	Init(*Runtime)
+	Init(*Runtime, log.Interface)
 	Name() string
 	Run(context.Context) error
 	SetSteps([]StepConfig)
@@ -40,11 +41,13 @@ type BaseTask struct {
 	name    string
 	Runtime *Runtime
 	steps   []StepConfig
+	Logger  log.Interface
 }
 
 // Init initializes the task with the external manager and the configuration.
-func (t *BaseTask) Init(r *Runtime) {
+func (t *BaseTask) Init(r *Runtime, parentLogger log.Interface) {
 	t.Runtime = r
+	t.Logger = parentLogger.Subscribe(log.FieldKeyTask, t.Name())
 }
 
 // Run runs task steps
@@ -70,11 +73,12 @@ func (t *BaseTask) Name() string {
 func (t *BaseTask) newStepExecuter(newStepFunc func() Step) func(context.Context, config.Node) error {
 	return func(ctx context.Context, node config.Node) error {
 		step := newStepFunc()
-		em, err := external.NewRemoteRunnerManager(&node)
+		logger := t.Logger.Subscribe(log.FieldKeyNode, node.Name)
+		em, err := external.NewRemoteRunnerManager(&node, logger)
 		if err != nil {
 			return errors.Trace(err)
 		}
-		step.Init(t.Runtime, em, node)
+		step.Init(t.Runtime, em, node, logger)
 		return errors.Trace(step.Execute(ctx))
 	}
 }
@@ -115,7 +119,7 @@ func (t *BaseTask) ExecuteSteps(ctx context.Context) error {
 // Step is an interface that defines the methods that all steps must implement,
 // in order to be executed by the task.
 type Step interface {
-	Init(r *Runtime, em *external.Manager, node config.Node)
+	Init(r *Runtime, em *external.Manager, node config.Node, logger log.Interface)
 	Execute(context.Context) error
 }
 
@@ -131,7 +135,7 @@ type BaseStep struct {
 	Em      *external.Manager
 	Runtime *Runtime
 	Node    config.Node
-	Logger  *logrus.Logger
+	Logger  log.Interface
 }
 
 // GetNodeKey returns key for the node.
@@ -140,10 +144,10 @@ func (s *BaseStep) GetNodeKey(key string) string {
 }
 
 // Init initializes the step with the external manager and the configuration.
-func (s *BaseStep) Init(r *Runtime, em *external.Manager, node config.Node) {
+func (s *BaseStep) Init(r *Runtime, em *external.Manager, node config.Node, logger log.Interface) {
 	s.Em = em
 	s.Runtime = r
-	s.Logger = logrus.StandardLogger()
+	s.Logger = logger
 	s.Node = node
 }
 
@@ -155,18 +159,19 @@ func (s *BaseStep) Execute(context.Context) error {
 
 // LocalStep is an interface that defines the methods that all local steps must implement,
 type LocalStep interface {
-	Init(r *Runtime)
+	Init(*Runtime, log.Interface)
 	Execute(context.Context) error
 }
 
 // BaseLocalStep is a base local step.
 type BaseLocalStep struct {
 	Runtime *Runtime
-	Logger  *logrus.Logger
+	Logger  log.Interface
 }
 
 // Init initializes a base local step.
-func (s *BaseLocalStep) Init(r *Runtime) {
+func (s *BaseLocalStep) Init(r *Runtime, logger log.Interface) {
 	s.Runtime = r
-	s.Logger = logrus.StandardLogger()
+	// TODO: add step name
+	s.Logger = logger
 }

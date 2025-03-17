@@ -45,7 +45,7 @@ func (s *genAdminCliConfigStepSuite) SetupTest() {
 	s.Cfg.Name = "test-cluster"
 	s.SetupRuntime()
 	s.step = &genAdminCliConfigStep{}
-	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.step.Init(s.Runtime, s.MockEm, config.Node{}, s.Logger)
 }
 
 func (s *genAdminCliConfigStepSuite) Test() {
@@ -412,7 +412,7 @@ func (s *initClusterStepSuite) SetupTest() {
 	s.configDir = "/root/3fs/mgmtd/config.d"
 	s.logDir = "/root/3fs/mgmtd/log"
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.step.Init(s.Runtime, s.MockEm, config.Node{}, s.Logger)
 	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, "xxxx")
 }
 
@@ -463,7 +463,7 @@ func (s *initUserAndChainStepSuite) SetupTest() {
 	s.StepSuite.SetupTest()
 
 	s.step = &initUserAndChainStep{}
-	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.step.Init(s.Runtime, s.MockEm, config.Node{}, s.Logger)
 	s.Runtime.Store(task.RuntimeMgmtdServerAddressesKey, `["RDMA://10.16.28.58:8000"]`)
 }
 

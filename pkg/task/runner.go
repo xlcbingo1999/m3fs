@@ -23,6 +23,7 @@ import (
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
 	"github.com/open3fs/m3fs/pkg/external"
+	"github.com/open3fs/m3fs/pkg/log"
 )
 
 // defines keys of runtime cache.
@@ -84,14 +85,15 @@ func (r *Runner) Init() {
 		r.runtime.Nodes[node.Name] = node
 	}
 	r.runtime.Services = &r.cfg.Services
+	logger := log.Logger.Subscribe(log.FieldKeyNode, "<LOCAL>")
 	em := external.NewManager(external.NewLocalRunner(&external.LocalRunnerCfg{
-		Logger:         logrus.StandardLogger(),
+		Logger:         logger,
 		MaxExitTimeout: r.cfg.CmdMaxExitTimeout,
-	}))
+	}), logger)
 	r.runtime.LocalEm = em
 
 	for _, task := range r.tasks {
-		task.Init(r.runtime)
+		task.Init(r.runtime, log.Logger.Subscribe(log.FieldKeyTask, task.Name()))
 	}
 	r.init = true
 }

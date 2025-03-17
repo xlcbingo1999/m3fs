@@ -16,6 +16,7 @@ package monitor
 
 import (
 	"github.com/open3fs/m3fs/pkg/config"
+	"github.com/open3fs/m3fs/pkg/log"
 	"github.com/open3fs/m3fs/pkg/task"
 )
 
@@ -25,9 +26,9 @@ type CreateMonitorTask struct {
 }
 
 // Init initializes the task.
-func (t *CreateMonitorTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
+func (t *CreateMonitorTask) Init(r *task.Runtime, logger log.Interface) {
 	t.BaseTask.SetName("CreateMonitorTask")
+	t.BaseTask.Init(r, logger)
 	nodes := make([]config.Node, len(r.Cfg.Services.Monitor.Nodes))
 	for i, node := range r.Cfg.Services.Monitor.Nodes {
 		nodes[i] = r.Nodes[node]
@@ -50,9 +51,9 @@ type DeleteMonitorTask struct {
 }
 
 // Init initializes the task.
-func (t *DeleteMonitorTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
+func (t *DeleteMonitorTask) Init(r *task.Runtime, logger log.Interface) {
 	t.BaseTask.SetName("DeleteMonitorTask")
+	t.BaseTask.Init(r, logger)
 	nodes := make([]config.Node, len(r.Cfg.Services.Monitor.Nodes))
 	for i, node := range r.Cfg.Services.Monitor.Nodes {
 		nodes[i] = r.Nodes[node]

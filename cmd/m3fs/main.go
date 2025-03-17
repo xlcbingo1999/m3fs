@@ -22,6 +22,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/open3fs/m3fs/pkg/errors"
+	mlog "github.com/open3fs/m3fs/pkg/log"
 )
 
 var (
@@ -34,18 +35,16 @@ var (
 	clusterDeleteAll bool
 )
 
-func initLogger() {
-	if debug {
-		logrus.StandardLogger().SetLevel(logrus.DebugLevel)
-	}
-}
-
 func main() {
 	app := &cli.App{
 		Name:  "m3fs",
 		Usage: "3FS Deploy Tool",
 		Before: func(ctx *cli.Context) error {
-			initLogger()
+			level := logrus.InfoLevel
+			if debug {
+				level = logrus.DebugLevel
+			}
+			mlog.InitLogger(level)
 			return nil
 		},
 		Commands: []*cli.Command{

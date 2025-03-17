@@ -21,6 +21,7 @@ import (
 	"github.com/open3fs/m3fs/pkg/common"
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/external"
+	"github.com/open3fs/m3fs/pkg/log"
 	"github.com/open3fs/m3fs/pkg/task"
 	"github.com/open3fs/m3fs/pkg/task/steps"
 )
@@ -64,9 +65,9 @@ type Create3FSClientServiceTask struct {
 }
 
 // Init initializes the task.
-func (t *Create3FSClientServiceTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
+func (t *Create3FSClientServiceTask) Init(r *task.Runtime, logger log.Interface) {
 	t.BaseTask.SetName("Create3FSClicnetServiceTask")
+	t.BaseTask.Init(r, logger)
 	nodes := make([]config.Node, len(r.Cfg.Services.Client.Nodes))
 	client := r.Cfg.Services.Client
 	for i, node := range client.Nodes {
@@ -135,9 +136,9 @@ type Delete3FSClientServiceTask struct {
 }
 
 // Init initializes the task.
-func (t *Delete3FSClientServiceTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
+func (t *Delete3FSClientServiceTask) Init(r *task.Runtime, logger log.Interface) {
 	t.BaseTask.SetName("Delete3FSClientServiceTask")
+	t.BaseTask.Init(r, logger)
 	client := r.Services.Client
 	nodes := make([]config.Node, len(client.Nodes))
 	for i, node := range client.Nodes {

@@ -45,7 +45,7 @@ func (s *genClickhouseConfigStepSuite) SetupTest() {
 
 	s.step = &genClickhouseConfigStep{}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.step.Init(s.Runtime, s.MockEm, config.Node{}, s.Logger)
 }
 
 func (s *genClickhouseConfigStepSuite) Test() {
@@ -78,7 +78,7 @@ func (s *startContainerStepSuite) SetupTest() {
 	s.StepSuite.SetupTest()
 
 	s.step = &startContainerStep{}
-	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.step.Init(s.Runtime, s.MockEm, config.Node{}, s.Logger)
 	s.Runtime.Store("clickhouse_temp_config_dir", "/tmp/3f-clickhouse.xxx")
 }
 
@@ -148,7 +148,7 @@ func (s *initClusterStepSuite) SetupTest() {
 	s.StepSuite.SetupTest()
 
 	s.step = &initClusterStep{}
-	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.step.Init(s.Runtime, s.MockEm, config.Node{}, s.Logger)
 }
 
 func (s *initClusterStepSuite) TestInit() {
@@ -184,7 +184,7 @@ func (s *rmContainerStepSuite) SetupTest() {
 
 	s.step = &rmContainerStep{}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.step.Init(s.Runtime, s.MockEm, config.Node{}, s.Logger)
 	s.dataDir = "/root/3fs/clickhouse/data"
 	s.logDir = "/root/3fs/clickhouse/log"
 	s.configDir = "/root/3fs/clickhouse/config.d"

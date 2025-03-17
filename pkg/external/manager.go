@@ -18,24 +18,23 @@ import (
 	"context"
 	"sync"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
+	"github.com/open3fs/m3fs/pkg/log"
 )
 
 type externalInterface interface {
-	init(em *Manager)
+	init(em *Manager, logger log.Interface)
 }
 
 type externalBase struct {
 	em     *Manager
-	logger *log.Logger
+	logger log.Interface
 }
 
-func (eb *externalBase) init(em *Manager) {
+func (eb *externalBase) init(em *Manager, logger log.Interface) {
 	eb.em = em
-	eb.logger = log.StandardLogger()
+	eb.logger = logger
 }
 
 func (eb *externalBase) run(ctx context.Context, cmdName string, args ...string) (string, error) {
@@ -82,12 +81,12 @@ type Manager struct {
 type NewManagerFunc func() *Manager
 
 // NewManager create a new external manager
-func NewManager(runner RunnerInterface) (em *Manager) {
+func NewManager(runner RunnerInterface, logger log.Interface) (em *Manager) {
 	em = &Manager{
 		Runner: runner,
 	}
 	for _, newExternal := range newExternals {
-		newExternal().init(em)
+		newExternal().init(em, logger)
 	}
 	return em
 }
@@ -95,7 +94,7 @@ func NewManager(runner RunnerInterface) (em *Manager) {
 var remoteManagerCache sync.Map
 
 // NewRemoteRunnerManager create a new remote runner manager
-func NewRemoteRunnerManager(node *config.Node) (*Manager, error) {
+func NewRemoteRunnerManager(node *config.Node, logger log.Interface) (*Manager, error) {
 	mgr, ok := remoteManagerCache.Load(node)
 	if ok {
 		return mgr.(*Manager), nil
@@ -105,11 +104,12 @@ func NewRemoteRunnerManager(node *config.Node) (*Manager, error) {
 		Password:   node.Password,
 		TargetHost: node.Host,
 		TargetPort: node.Port,
+		Logger:     logger,
 		// TODO: add timeout config
 	})
 	if err != nil {
 		return nil, errors.Annotatef(err, "create remote runner for node [%s]", node.Name)
 	}
 
-	return NewManager(runner), nil
+	return NewManager(runner, logger), nil
 }

@@ -18,6 +18,7 @@ import (
 	"path"
 
 	"github.com/open3fs/m3fs/pkg/config"
+	"github.com/open3fs/m3fs/pkg/log"
 	"github.com/open3fs/m3fs/pkg/task"
 	"github.com/open3fs/m3fs/pkg/task/steps"
 )
@@ -38,9 +39,9 @@ type CreateMetaServiceTask struct {
 }
 
 // Init initializes the task.
-func (t *CreateMetaServiceTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
+func (t *CreateMetaServiceTask) Init(r *task.Runtime, logger log.Interface) {
 	t.BaseTask.SetName("CreateMetaServiceTask")
+	t.BaseTask.Init(r, logger)
 
 	workDir := getServiceWorkDir(r.WorkDir)
 	nodes := make([]config.Node, len(r.Cfg.Services.Meta.Nodes))
@@ -97,9 +98,9 @@ type DeleteMetaServiceTask struct {
 }
 
 // Init initializes the task.
-func (t *DeleteMetaServiceTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
+func (t *DeleteMetaServiceTask) Init(r *task.Runtime, logger log.Interface) {
 	t.BaseTask.SetName("DeleteMetaServiceTask")
+	t.BaseTask.Init(r, logger)
 	nodes := make([]config.Node, len(r.Cfg.Services.Meta.Nodes))
 	for i, node := range r.Cfg.Services.Meta.Nodes {
 		nodes[i] = r.Nodes[node]

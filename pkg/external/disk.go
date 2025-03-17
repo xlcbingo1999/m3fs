@@ -14,6 +14,8 @@
 
 package external
 
+import "github.com/open3fs/m3fs/pkg/log"
+
 // DiskInterface provides interface about disk.
 type DiskInterface interface {
 	GetNvmeDisks() ([]string, error)
@@ -23,8 +25,8 @@ type diskExternal struct {
 	externalBase
 }
 
-func (de *diskExternal) init(em *Manager) {
-	de.externalBase.init(em)
+func (de *diskExternal) init(em *Manager, logger log.Interface) {
+	de.externalBase.init(em, logger)
 	em.Disk = de
 }
 

@@ -44,7 +44,7 @@ func (s *genMonitorConfigStepSuite) SetupTest() {
 
 	s.step = &genMonitorConfigStep{}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.step.Init(s.Runtime, s.MockEm, config.Node{}, s.Logger)
 }
 
 func (s *genMonitorConfigStepSuite) Test() {
@@ -75,7 +75,7 @@ func (s *runContainerStepSuite) SetupTest() {
 
 	s.step = &runContainerStep{}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.step.Init(s.Runtime, s.MockEm, config.Node{}, s.Logger)
 	s.Runtime.Store("monitor_temp_config_dir", "/tmp/3f-monitor.xxx")
 }
 
@@ -135,7 +135,7 @@ func (s *rmContainerStepSuite) SetupTest() {
 
 	s.step = &rmContainerStep{}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.step.Init(s.Runtime, s.MockEm, config.Node{}, s.Logger)
 	s.etcDir = "/root/3fs/monitor/etc"
 	s.logDir = "/root/3fs/monitor/log"
 }

@@ -23,21 +23,26 @@ import (
 
 	"github.com/bitly/go-simplejson"
 	guuid "github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v3"
 
 	"github.com/open3fs/m3fs/pkg/common"
 	"github.com/open3fs/m3fs/pkg/errors"
+	"github.com/open3fs/m3fs/pkg/log"
 )
 
 // Suite is the base Suite for all test suites.
 type Suite struct {
 	suite.Suite
+	Logger log.Interface
 }
 
 // SetupSuite runs before all tests in the suite.
 func (s *Suite) SetupSuite() {
+	log.InitLogger(logrus.DebugLevel)
+	s.Logger = log.Logger
 }
 
 // TearDownSuite runs after all tests in the suite.

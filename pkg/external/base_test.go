@@ -19,10 +19,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/open3fs/m3fs/pkg/external"
+	"github.com/open3fs/m3fs/pkg/log"
 )
 
 var suiteRun = suite.Run
@@ -40,7 +42,8 @@ func (s *Suite) SetupSuite() {
 
 func (s *Suite) SetupTest() {
 	s.r = NewMockedRunner(s.T())
-	s.em = external.NewManager(s.r)
+	log.InitLogger(logrus.DebugLevel)
+	s.em = external.NewManager(s.r, log.Logger)
 }
 
 // Ctx returns a context used in test.

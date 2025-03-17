@@ -41,7 +41,7 @@ func (s *umountHostMountpointSuite) SetupTest() {
 	s.Cfg.Services.Client.HostMountpoint = "/mnt/3fs"
 	s.SetupRuntime()
 	s.step = &umountHostMountponitStep{}
-	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.step.Init(s.Runtime, s.MockEm, config.Node{}, s.Logger)
 }
 
 func (s *umountHostMountpointSuite) Test() {

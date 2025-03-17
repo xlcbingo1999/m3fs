@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/open3fs/m3fs/pkg/log"
 	"github.com/open3fs/m3fs/tests/base"
 )
 
@@ -44,6 +45,6 @@ func (m *mockTask) Name() string {
 	return args.String(0)
 }
 
-func (m *mockTask) Init(r *Runtime) {
+func (m *mockTask) Init(r *Runtime, logger log.Interface) {
 	m.Called(r)
 }

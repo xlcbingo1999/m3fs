@@ -24,12 +24,12 @@ import (
 	"time"
 
 	"github.com/open3fs/m3fs/pkg/errors"
-	"github.com/sirupsen/logrus"
+	"github.com/open3fs/m3fs/pkg/log"
 )
 
 // LocalRunner implements RunInterface by running command on local host.
 type LocalRunner struct {
-	logger         *logrus.Logger
+	logger         log.Interface
 	maxExitTimeout time.Duration
 }
 
@@ -177,7 +177,7 @@ func (e runErrorImpl) ExitCodeIn(errnos ...syscall.Errno) bool {
 
 // LocalRunnerCfg defines configurations of a local runner.
 type LocalRunnerCfg struct {
-	Logger         *logrus.Logger
+	Logger         log.Interface
 	MaxExitTimeout *time.Duration
 }
 

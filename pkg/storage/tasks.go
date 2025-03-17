@@ -23,6 +23,7 @@ import (
 
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/external"
+	"github.com/open3fs/m3fs/pkg/log"
 	"github.com/open3fs/m3fs/pkg/task"
 	"github.com/open3fs/m3fs/pkg/task/steps"
 )
@@ -90,9 +91,9 @@ type CreateStorageServiceTask struct {
 }
 
 // Init initializes the task.
-func (t *CreateStorageServiceTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
+func (t *CreateStorageServiceTask) Init(r *task.Runtime, logger log.Interface) {
 	t.BaseTask.SetName("CreateStorageServiceTask")
+	t.BaseTask.Init(r, logger)
 
 	storage := r.Cfg.Services.Storage
 	workDir := getServiceWorkDir(r.WorkDir)
@@ -171,9 +172,9 @@ type DeleteStorageServiceTask struct {
 }
 
 // Init initializes the task.
-func (t *DeleteStorageServiceTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
+func (t *DeleteStorageServiceTask) Init(r *task.Runtime, logger log.Interface) {
 	t.BaseTask.SetName("DeleteStorageServiceTask")
+	t.BaseTask.Init(r, logger)
 	nodes := make([]config.Node, len(r.Cfg.Services.Storage.Nodes))
 	for i, node := range r.Cfg.Services.Storage.Nodes {
 		nodes[i] = r.Nodes[node]

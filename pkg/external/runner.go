@@ -28,10 +28,10 @@ import (
 	"time"
 
 	"github.com/pkg/sftp"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 
 	"github.com/open3fs/m3fs/pkg/errors"
+	"github.com/open3fs/m3fs/pkg/log"
 )
 
 // RunnerInterface is the interface for running command.
@@ -45,7 +45,7 @@ type RunnerInterface interface {
 // RemoteRunner implements RunInterface by running command on a remote host.
 type RemoteRunner struct {
 	mu         sync.Mutex
-	log        *log.Logger
+	log        log.Interface
 	sshClient  *ssh.Client
 	sftpClient *sftp.Client
 	user       string
@@ -265,6 +265,7 @@ type RemoteRunnerCfg struct {
 	TargetHost string
 	TargetPort int
 	PrivateKey *string
+	Logger     log.Interface
 	Timeout    time.Duration
 }
 
@@ -302,7 +303,7 @@ func NewRemoteRunner(cfg *RemoteRunnerCfg) (*RemoteRunner, error) {
 	}
 	runner := &RemoteRunner{
 		user:       cfg.Username,
-		log:        log.StandardLogger(),
+		log:        cfg.Logger,
 		sshClient:  sshClient,
 		sftpClient: sftpClient,
 	}
