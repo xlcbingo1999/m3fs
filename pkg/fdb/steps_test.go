@@ -15,6 +15,7 @@
 package fdb
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -64,7 +65,7 @@ func (s *genClusterFileContentStepSuite) TestGenClusterFileContentStep() {
 
 	contentI, ok := s.Runtime.Load(task.RuntimeFdbClusterFileContentKey)
 	s.True(ok)
-	s.Equal("test-cluster:test-cluster@1.1.1.1:4500,1.1.1.2:4500", contentI.(string))
+	s.True(strings.Contains(contentI.(string), "@1.1.1.1:4500,1.1.1.2:4500"))
 }
 
 func TestRunContainerStep(t *testing.T) {

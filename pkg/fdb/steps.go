@@ -46,7 +46,7 @@ func (s *genClusterFileContentStep) Execute(context.Context) error {
 	}
 
 	clusterFileContent := fmt.Sprintf("%s:%s@%s",
-		s.Runtime.Cfg.Name, s.Runtime.Cfg.Name, strings.Join(nodes, ","))
+		common.RandomString(10), common.RandomString(10), strings.Join(nodes, ","))
 	s.Logger.Debugf("fdb cluster file content: %s", clusterFileContent)
 	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, clusterFileContent)
 	return nil
