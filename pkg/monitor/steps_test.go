@@ -96,6 +96,10 @@ func (s *runContainerStepSuite) Test() {
 		Detach:      common.Pointer(true),
 		Volumes: []*external.VolumeArgs{
 			{
+				Source: "/dev",
+				Target: "/dev",
+			},
+			{
 				Source: etcDir,
 				Target: "/opt/3fs/etc",
 			},
