@@ -80,7 +80,6 @@ func (t *Create3FSClientServiceTask) Init(r *task.Runtime) {
 			Rshare: common.Pointer(true),
 		})
 	}
-	token, _ := r.LoadString(task.RuntimeUserTokenKey)
 	workDir := getServiceWorkDir(r.WorkDir)
 	t.SetSteps([]task.StepConfig{
 		{
@@ -92,13 +91,17 @@ func (t *Create3FSClientServiceTask) Init(r *task.Runtime) {
 				MainAppTomlTmpl:      []byte(""),
 				MainLauncherTomlTmpl: ClientFuseMainLauncherTomlTmpl,
 				MainTomlTmpl:         ClientMainTomlTmpl,
-				Extra3FSConfigFiles: []*steps.Extra3FSConfigFile{
-					{
-						FileName: "token.txt",
-						Data:     []byte(token),
-					},
+				Extra3FSConfigFilesFunc: func(runtime *task.Runtime) []*steps.Extra3FSConfigFile {
+					token, _ := r.LoadString(task.RuntimeUserTokenKey)
+					return []*steps.Extra3FSConfigFile{
+						{
+							FileName: "token.txt",
+							Data:     []byte(token),
+						},
+					}
 				},
-			}),
+			},
+			),
 		},
 		{
 			Nodes: []config.Node{nodes[0]},
