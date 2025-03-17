@@ -124,6 +124,10 @@ func (s *initClusterStep) Execute(ctx context.Context) error {
 		HostNetwork: true,
 		Volumes: []*external.VolumeArgs{
 			{
+				Source: "/dev",
+				Target: "/dev",
+			},
+			{
 				Source: path.Join(workDir, "config.d"),
 				Target: "/opt/3fs/etc",
 			},

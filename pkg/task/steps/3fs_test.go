@@ -227,6 +227,10 @@ func (s *run3FSContainerStepSuite) testRunContainer(
 		},
 		Volumes: []*external.VolumeArgs{
 			{
+				Source: "/dev",
+				Target: "/dev",
+			},
+			{
 				Source: s.configDir,
 				Target: "/opt/3fs/etc/",
 			},

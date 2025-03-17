@@ -316,6 +316,10 @@ func (s *run3FSContainerStep) Execute(ctx context.Context) error {
 		Detach: common.Pointer(true),
 		Volumes: []*external.VolumeArgs{
 			{
+				Source: "/dev",
+				Target: "/dev",
+			},
+			{
 				Source: getConfigDir(s.serviceWorkDir),
 				Target: "/opt/3fs/etc/",
 			},
@@ -325,14 +329,17 @@ func (s *run3FSContainerStep) Execute(ctx context.Context) error {
 			},
 		},
 	}
-	if s.useRdmaNetwork && s.Runtime.Cfg.NetworkType != config.NetworkTypeRDMA {
-		ibdev2netdevScriptPath := path.Join(s.Runtime.Cfg.WorkDir, "bin", "ibdev2netdev")
-		args.Volumes = append(args.Volumes, &external.VolumeArgs{
-			Source: ibdev2netdevScriptPath,
-			Target: "/usr/sbin/ibdev2netdev",
-		})
-	}
 	args.Volumes = append(args.Volumes, s.extraVolumes...)
+
+	if s.useRdmaNetwork {
+		if s.Runtime.Cfg.NetworkType != config.NetworkTypeRDMA {
+			ibdev2netdevScriptPath := path.Join(s.Runtime.Cfg.WorkDir, "bin", "ibdev2netdev")
+			args.Volumes = append(args.Volumes, &external.VolumeArgs{
+				Source: ibdev2netdevScriptPath,
+				Target: "/usr/sbin/ibdev2netdev",
+			})
+		}
+	}
 	_, err = s.Em.Docker.Run(ctx, args)
 	if err != nil {
 		return errors.Trace(err)

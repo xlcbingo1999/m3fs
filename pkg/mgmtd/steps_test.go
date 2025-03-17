@@ -99,6 +99,10 @@ func (s *initClusterStepSuite) TestInitCluster() {
 		HostNetwork: true,
 		Volumes: []*external.VolumeArgs{
 			{
+				Source: "/dev",
+				Target: "/dev",
+			},
+			{
 				Source: s.configDir,
 				Target: "/opt/3fs/etc",
 			},
