@@ -240,6 +240,8 @@ func (s *run3FSContainerStepSuite) testRunContainer(
 		},
 	}
 	if useRdmaNetwork {
+		s.Runtime.Store(s.step.GetErdmaSoPathKey(),
+			"/usr/lib/x86_64-linux-gnu/libibverbs/liberdma-rdmav34.so")
 		args.Volumes = append(args.Volumes, s.step.GetRdmaVolumes()...)
 	}
 	s.MockDocker.On("Run", args).Return("", nil)
@@ -371,6 +373,8 @@ func (s *upload3FSMainConfigStepSuite) TestUploadConfig() {
 			},
 		},
 	}
+	s.Runtime.Store(s.step.GetErdmaSoPathKey(),
+		"/usr/lib/x86_64-linux-gnu/libibverbs/liberdma-rdmav34.so")
 	args.Volumes = append(args.Volumes, s.step.GetRdmaVolumes()...)
 
 	s.MockDocker.On("Run", args).Return("", nil)

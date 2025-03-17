@@ -332,6 +332,9 @@ func (s *run3FSContainerStep) Execute(ctx context.Context) error {
 	args.Volumes = append(args.Volumes, s.extraVolumes...)
 
 	if s.useRdmaNetwork {
+		if err := s.GetErdmaSoPath(ctx); err != nil {
+			return errors.Trace(err)
+		}
 		args.Volumes = append(args.Volumes, s.GetRdmaVolumes()...)
 	}
 	_, err = s.Em.Docker.Run(ctx, args)
@@ -464,6 +467,10 @@ func (s *upload3FSMainConfigStep) Execute(ctx context.Context) error {
 				Target: "/dev",
 			},
 		},
+	}
+
+	if err := s.GetErdmaSoPath(ctx); err != nil {
+		return errors.Trace(err)
 	}
 	args.Volumes = append(args.Volumes, s.GetRdmaVolumes()...)
 	_, err = s.Em.Docker.Run(ctx, args)
