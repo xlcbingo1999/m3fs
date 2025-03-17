@@ -291,6 +291,7 @@ type run3FSContainerStep struct {
 	service        string
 	serviceWorkDir string
 	extraVolumes   []*external.VolumeArgs
+	useRdmaNetwork bool
 }
 
 func (s *run3FSContainerStep) Execute(ctx context.Context) error {
@@ -324,6 +325,13 @@ func (s *run3FSContainerStep) Execute(ctx context.Context) error {
 			},
 		},
 	}
+	if s.useRdmaNetwork && s.Runtime.Cfg.NetworkType != config.NetworkTypeRDMA {
+		ibdev2netdevScriptPath := path.Join(s.Runtime.Cfg.WorkDir, "bin", "ibdev2netdev")
+		args.Volumes = append(args.Volumes, &external.VolumeArgs{
+			Source: ibdev2netdevScriptPath,
+			Target: "/usr/sbin/ibdev2netdev",
+		})
+	}
 	args.Volumes = append(args.Volumes, s.extraVolumes...)
 	_, err = s.Em.Docker.Run(ctx, args)
 	if err != nil {
@@ -336,11 +344,12 @@ func (s *run3FSContainerStep) Execute(ctx context.Context) error {
 
 // Run3FSContainerStepSetup is a struct that holds the configuration of the run3FSContainerStep.
 type Run3FSContainerStepSetup struct {
-	ImgName       string
-	ContainerName string
-	Service       string
-	WorkDir       string
-	ExtraVolumes  []*external.VolumeArgs
+	ImgName        string
+	ContainerName  string
+	Service        string
+	WorkDir        string
+	ExtraVolumes   []*external.VolumeArgs
+	UseRdmaNetwork bool
 }
 
 // NewRun3FSContainerStepFunc is run3FSContainer factory func.
@@ -352,6 +361,7 @@ func NewRun3FSContainerStepFunc(setup *Run3FSContainerStepSetup) func() task.Ste
 			service:        setup.Service,
 			serviceWorkDir: setup.WorkDir,
 			extraVolumes:   setup.ExtraVolumes,
+			useRdmaNetwork: setup.UseRdmaNetwork,
 		}
 	}
 }

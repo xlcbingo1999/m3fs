@@ -24,11 +24,21 @@ import (
 )
 
 const (
-	ibdev2netdevScript = `#!/bin/bash
+	genIbdev2netdevScript = `#!/bin/bash
 
 # emulate mlnx util ibdev2netdev
 # format: ibdev port xx ==> netdev (Up/Down)
 # example: mlx5_0 port 1 ==> eth0 (Up)
+
+if [ -z "$1" ]; then
+    echo "Usage: $0 <targetDir>"
+    exit 1
+fi
+
+targetDir=$1
+cat > $targetDir/ibdev2netdev <<EOF
+#!/bin/bash
+EOF
 
 rdma link | awk '{print $2,$4,$8}' | while read ibInfo state netdev
 do
@@ -41,9 +51,13 @@ do
         state=Down
     fi
     if [ -n "$netdev" ]; then
-        echo "$ibdev port $ibport ==> $netdev ($state)"
+		cat <<EOF >> $targetDir/ibdev2netdev
+echo "$ibdev port $ibport ==> $netdev ($state)"
+EOF
     fi
 done
+
+chmod +x $targetDir/ibdev2netdev
 `
 	createRdmaLinkScript = `#!/bin/bash
 
@@ -96,8 +110,8 @@ func (s *genIbdev2netdevScriptStep) Execute(ctx context.Context) error {
 			s.Logger.Errorf("Failed to remove temporary directory %s: %v", tmpDir, err)
 		}
 	}()
-	scriptLocalPath := path.Join(tmpDir, "ibdev2netdev")
-	err = localEm.FS.WriteFile(scriptLocalPath, []byte(ibdev2netdevScript), 0755)
+	scriptLocalPath := path.Join(tmpDir, "gen-ibdev2netdev")
+	err = localEm.FS.WriteFile(scriptLocalPath, []byte(genIbdev2netdevScript), 0755)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -107,15 +121,14 @@ func (s *genIbdev2netdevScriptStep) Execute(ctx context.Context) error {
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", binDir)
 	}
-	remotePath := path.Join(binDir, "ibdev2netdev")
-	if err := s.Em.Runner.Scp(scriptLocalPath, remotePath); err != nil {
+	remoteGenScriptPath := "/tmp/gen-ibdev2netdev"
+	if err := s.Em.Runner.Scp(scriptLocalPath, remoteGenScriptPath); err != nil {
 		return errors.Annotatef(err, "scp %s", scriptLocalPath)
 	}
-	_, err = s.Em.Runner.Exec(ctx, "chmod", "+x", remotePath)
+	_, err = s.Em.Runner.Exec(ctx, "bash", remoteGenScriptPath, binDir)
 	if err != nil {
-		return errors.Annotatef(err, "chmod +x %s", remotePath)
+		return errors.Annotatef(err, "bash %s %s", remoteGenScriptPath, binDir)
 	}
-
 	return nil
 }
 

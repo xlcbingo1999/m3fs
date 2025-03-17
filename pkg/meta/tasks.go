@@ -80,10 +80,11 @@ func (t *CreateMetaServiceTask) Init(r *task.Runtime) {
 			Parallel: true,
 			NewStep: steps.NewRun3FSContainerStepFunc(
 				&steps.Run3FSContainerStepSetup{
-					ImgName:       config.ImageName3FS,
-					ContainerName: r.Services.Meta.ContainerName,
-					Service:       ServiceName,
-					WorkDir:       workDir,
+					ImgName:        config.ImageName3FS,
+					ContainerName:  r.Services.Meta.ContainerName,
+					Service:        ServiceName,
+					WorkDir:        workDir,
+					UseRdmaNetwork: true,
 				},
 			),
 		},

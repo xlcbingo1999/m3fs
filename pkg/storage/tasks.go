@@ -149,10 +149,11 @@ func (t *CreateStorageServiceTask) Init(r *task.Runtime) {
 			Parallel: true,
 			NewStep: steps.NewRun3FSContainerStepFunc(
 				&steps.Run3FSContainerStepSetup{
-					ImgName:       config.ImageName3FS,
-					ContainerName: storage.ContainerName,
-					Service:       ServiceName,
-					WorkDir:       workDir,
+					ImgName:        config.ImageName3FS,
+					ContainerName:  storage.ContainerName,
+					Service:        ServiceName,
+					WorkDir:        workDir,
+					UseRdmaNetwork: true,
 					ExtraVolumes: []*external.VolumeArgs{
 						{
 							Source: path.Join(workDir, "3fsdata"),
