@@ -15,6 +15,7 @@
 package network
 
 import (
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -201,6 +202,64 @@ func (s *createRdmaRxeLinkStepSuite) TestCreateRdmaRxeLinkStep() {
 
 	s.MockLocalFS.AssertExpectations(s.T())
 	s.MockFS.AssertExpectations(s.T())
+	s.MockRunner.AssertExpectations(s.T())
+}
+
+func TestLoadErdmaModuleStep(t *testing.T) {
+	suiteRun(t, &loadErdmaModuleStepSuite{})
+}
+
+type loadErdmaModuleStepSuite struct {
+	ttask.StepSuite
+
+	step *loadErdmaModuleStep
+}
+
+func (s *loadErdmaModuleStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.step = &loadErdmaModuleStep{}
+	s.Cfg.Nodes = []config.Node{
+		{
+			Name: "node1",
+			Host: "1.1.1.1",
+		},
+	}
+	s.SetupRuntime()
+	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0], s.Logger)
+}
+
+func (s *loadErdmaModuleStepSuite) TestLoadErdmaModuleNoAction() {
+	s.MockRunner.On("Exec", "ls", []string{"/sys/module/erdma"}).
+		Return("coresize  drivers  holders  initsize  initstate notes  parameters", nil)
+	s.MockRunner.On("Exec", "cat", []string{"/sys/module/erdma/parameters/compat_mode"}).
+		Return("Y", nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	s.MockRunner.AssertExpectations(s.T())
+}
+
+func (s *loadErdmaModuleStepSuite) TestLoadErdmaModuleWithLoadModule() {
+	s.MockRunner.On("Exec", "ls", []string{"/sys/module/erdma"}).
+		Return("", errors.New("No such file or directory"))
+	s.MockRunner.On("Exec", "modprobe", []string{"erdma", "compat_mode=1"}).Return("", nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	s.MockRunner.AssertExpectations(s.T())
+}
+
+func (s *loadErdmaModuleStepSuite) TestLoadErdmaModuleWithReloadModule() {
+	s.MockRunner.On("Exec", "ls", []string{"/sys/module/erdma"}).
+		Return("coresize  drivers  holders  initsize  initstate notes  parameters", nil)
+	s.MockRunner.On("Exec", "cat", []string{"/sys/module/erdma/parameters/compat_mode"}).
+		Return("N", nil)
+	s.MockRunner.On("Exec", "modprobe", []string{"-r", "erdma"}).Return("", nil)
+	s.MockRunner.On("Exec", "modprobe", []string{"erdma", "compat_mode=1"}).Return("", nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
 	s.MockRunner.AssertExpectations(s.T())
 }
 

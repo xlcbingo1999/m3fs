@@ -53,7 +53,14 @@ func (t *PrepareNetworkTask) Init(r *task.Runtime, logger log.Interface) {
 		}
 		steps = append(steps, rxeSteps...)
 	case config.NetworkTypeERDMA:
-		// TODO
+		erdmaSteps := []task.StepConfig{
+			{
+				Nodes:    nodes,
+				Parallel: true,
+				NewStep:  func() task.Step { return new(loadErdmaModuleStep) },
+			},
+		}
+		steps = append(steps, erdmaSteps...)
 	}
 	if r.Cfg.NetworkType != config.NetworkTypeRDMA {
 		steps = append(steps, task.StepConfig{
