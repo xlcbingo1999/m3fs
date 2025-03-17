@@ -36,7 +36,7 @@ func (m *MockFS) MkdirTemp(ctx context.Context, dir, prefix string) (string, err
 }
 
 // MkdirAll mock.
-func (m *MockFS) MkdirAll(path string) error {
+func (m *MockFS) MkdirAll(ctx context.Context, path string) error {
 	return m.Called(path).Error(0)
 }
 

@@ -237,6 +237,7 @@ func (s *distributeArtifactStepSuite) TestWithExisted() {
 
 func (s *distributeArtifactStepSuite) TestWithNotExisted() {
 	s.MockFS.On("Sha256sum", "/root/3fs/3fs.tar.gz").Return("", fmt.Errorf("Dummy error"))
+	s.MockFS.On("MkdirAll", "/root/3fs").Return(nil)
 	s.MockRunner.On("Scp", "/root/3fs.tar.gz", "/root/3fs/3fs.tar.gz").Return(nil)
 	s.MockFS.On("MkdirTemp", "/root/3fs", "artifact").Return("/root/3fs/artifact-xxx", nil)
 	s.MockFS.On("ExtractTar", "/root/3fs/3fs.tar.gz", "/root/3fs/artifact-xxx").Return(nil)
