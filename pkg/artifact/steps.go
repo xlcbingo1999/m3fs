@@ -29,12 +29,12 @@ type prepareTmpDirStep struct {
 	task.BaseLocalStep
 }
 
-func (s *prepareTmpDirStep) Execute(context.Context) error {
+func (s *prepareTmpDirStep) Execute(ctx context.Context) error {
 	tmpDir, ok := s.Runtime.LoadString(task.RuntimeArtifactTmpDirKey)
 	if !ok {
 		return errors.Errorf("Failed to get value of %s", task.RuntimeArtifactTmpDirKey)
 	}
-	if err := s.Runtime.LocalEm.FS.MkdirAll(tmpDir); err != nil {
+	if err := s.Runtime.LocalEm.FS.MkdirAll(ctx, tmpDir); err != nil {
 		return errors.Trace(err)
 	}
 	return nil
@@ -180,6 +180,9 @@ func (s *distributeArtifactStep) Execute(ctx context.Context) error {
 		srcPath, ok := s.Runtime.LoadString(task.RuntimeArtifactPathKey)
 		if !ok {
 			return errors.Errorf("Failed to get value of %s", task.RuntimeArtifactPathKey)
+		}
+		if err := s.Em.FS.MkdirAll(ctx, filepath.Dir(dstPath)); err != nil {
+			return errors.Trace(err)
 		}
 		if err := s.Em.Runner.Scp(srcPath, dstPath); err != nil {
 			return errors.Trace(err)

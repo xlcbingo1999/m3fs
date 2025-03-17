@@ -109,6 +109,7 @@ func (r *RemoteRunner) Close() {
 
 // Scp copy local file or dir to remote host.
 func (r *RemoteRunner) Scp(local, remote string) error {
+	r.log.Debugf("Scp %s on the local node to %s on the remote node", local, remote)
 	f, err := os.Stat(local)
 	if err != nil {
 		return errors.Trace(err)
@@ -141,7 +142,7 @@ func (r *RemoteRunner) copyFileToRemote(local, remote string) error {
 	}
 	defer func() {
 		if err := remoteFile.Close(); err != nil {
-			r.log.Warnf("Failed to remote local file: %+v", err)
+			r.log.Warnf("Failed to close remote file: %+v", err)
 		}
 	}()
 	_, err = io.Copy(remoteFile, localFile)

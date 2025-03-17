@@ -108,7 +108,7 @@ func (s *prepare3FSConfigStep) getMoniterEndpoints() string {
 
 func (s *prepare3FSConfigStep) Execute(ctx context.Context) error {
 	localEm := s.Runtime.LocalEm
-	err := localEm.FS.MkdirAll(s.serviceWorkDir)
+	err := localEm.FS.MkdirAll(ctx, s.serviceWorkDir)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -496,7 +496,7 @@ type remoteRunScriptStep struct {
 func (s *remoteRunScriptStep) Execute(ctx context.Context) error {
 	s.Logger.Infof("Start to run script %s on node", s.scriptName)
 	localEm := s.Runtime.LocalEm
-	err := localEm.FS.MkdirAll(s.workDir)
+	err := localEm.FS.MkdirAll(ctx, s.workDir)
 	if err != nil {
 		return errors.Trace(err)
 	}
