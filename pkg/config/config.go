@@ -134,8 +134,8 @@ type Services struct {
 // Config is the 3fs cluster config definition
 type Config struct {
 	Name              string
-	WorkDir           string `yaml:"workDir"`
-	NetworkType       NetworkType
+	WorkDir           string      `yaml:"workDir"`
+	NetworkType       NetworkType `yaml:"networkType"`
 	Nodes             []Node
 	Services          Services       `yaml:"services"`
 	Images            Images         `yaml:"images"`

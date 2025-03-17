@@ -59,7 +59,7 @@ var configCmd = &cli.Command{
 
 var sampleConfigTemplate = `name: "{{.name}}"
 workDir: "/opt/3fs"
-networktype: "RDMA"
+networkType: "RDMA"
 nodes:
   - name: node1
     host: "192.168.1.1"
