@@ -159,6 +159,7 @@ func deleteCluster(ctx *cli.Context) error {
 		new(monitor.DeleteMonitorTask),
 		new(clickhouse.DeleteClickhouseClusterTask),
 		new(fdb.DeleteFdbClusterTask),
+		new(network.DeleteNetworkTask),
 	)
 	runner.Init()
 	if err = runner.Run(ctx.Context); err != nil {

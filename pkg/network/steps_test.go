@@ -202,3 +202,69 @@ func (s *createRdmaRxeLinkStepSuite) TestCreateRdmaRxeLinkStep() {
 	s.MockLocalFS.AssertExpectations(s.T())
 	s.MockRunner.AssertExpectations(s.T())
 }
+
+func TestDeleteIbdev2netdevScriptStep(t *testing.T) {
+	suiteRun(t, &deleteIbdev2netdevScriptStepSuite{})
+}
+
+type deleteIbdev2netdevScriptStepSuite struct {
+	ttask.StepSuite
+
+	step *deleteIbdev2netdevScriptStep
+}
+
+func (s *deleteIbdev2netdevScriptStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.step = &deleteIbdev2netdevScriptStep{}
+	s.Cfg.Nodes = []config.Node{
+		{
+			Name: "node1",
+			Host: "1.1.1.1",
+		},
+	}
+	s.SetupRuntime()
+	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0])
+}
+
+func (s *deleteIbdev2netdevScriptStepSuite) TestDeleteIbdev2netdevScriptStep() {
+	scriptPath := s.Cfg.WorkDir + "/bin/ibdev2netdev"
+	s.MockRunner.On("Exec", "rm", []string{"-f", scriptPath}).Return("", nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	s.MockRunner.AssertExpectations(s.T())
+}
+
+func TestDeleteRdmaRxeLinkScriptStep(t *testing.T) {
+	suiteRun(t, &deleteRdmaRxeLinkScriptStepSuite{})
+}
+
+type deleteRdmaRxeLinkScriptStepSuite struct {
+	ttask.StepSuite
+
+	step *deleteRdmaRxeLinkScriptStep
+}
+
+func (s *deleteRdmaRxeLinkScriptStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.step = &deleteRdmaRxeLinkScriptStep{}
+	s.Cfg.Nodes = []config.Node{
+		{
+			Name: "node1",
+			Host: "1.1.1.1",
+		},
+	}
+	s.SetupRuntime()
+	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0])
+}
+
+func (s *deleteRdmaRxeLinkScriptStepSuite) TestDeleteRdmaRxeLinkScriptStep() {
+	scriptPath := s.Cfg.WorkDir + "/bin/create_rdma_rxe_link"
+	s.MockRunner.On("Exec", "rm", []string{"-f", scriptPath}).Return("", nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	s.MockRunner.AssertExpectations(s.T())
+}
