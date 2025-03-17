@@ -78,6 +78,12 @@ var clusterCmd = &cli.Command{
 					Usage:       "Path to the working directory(default is current directory)",
 					Destination: &workDir,
 				},
+				&cli.BoolFlag{
+					Name:        "all",
+					Aliases:     []string{"a"},
+					Usage:       "Remove images, packages and scripts(default is false)",
+					Destination: &clusterDeleteAll,
+				},
 			},
 		},
 		{
@@ -151,7 +157,7 @@ func deleteCluster(ctx *cli.Context) error {
 		return errors.Trace(err)
 	}
 
-	runner := task.NewRunner(cfg,
+	runnerTasks := []task.Interface{
 		new(fsclient.Delete3FSClientServiceTask),
 		new(storage.DeleteStorageServiceTask),
 		new(meta.DeleteMetaServiceTask),
@@ -159,8 +165,11 @@ func deleteCluster(ctx *cli.Context) error {
 		new(monitor.DeleteMonitorTask),
 		new(clickhouse.DeleteClickhouseClusterTask),
 		new(fdb.DeleteFdbClusterTask),
-		new(network.DeleteNetworkTask),
-	)
+	}
+	if clusterDeleteAll {
+		runnerTasks = append(runnerTasks, new(network.PrepareNetworkTask))
+	}
+	runner := task.NewRunner(cfg, runnerTasks...)
 	runner.Init()
 	if err = runner.Run(ctx.Context); err != nil {
 		return errors.Annotate(err, "delete cluster")

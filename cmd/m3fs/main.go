@@ -25,12 +25,13 @@ import (
 )
 
 var (
-	debug          bool
-	configFilePath string
-	artifactPath   string
-	outputPath     string
-	tmpDir         string
-	workDir        string
+	debug            bool
+	configFilePath   string
+	artifactPath     string
+	outputPath       string
+	tmpDir           string
+	workDir          string
+	clusterDeleteAll bool
 )
 
 func initLogger() {
