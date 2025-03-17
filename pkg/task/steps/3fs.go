@@ -332,13 +332,7 @@ func (s *run3FSContainerStep) Execute(ctx context.Context) error {
 	args.Volumes = append(args.Volumes, s.extraVolumes...)
 
 	if s.useRdmaNetwork {
-		if s.Runtime.Cfg.NetworkType != config.NetworkTypeRDMA {
-			ibdev2netdevScriptPath := path.Join(s.Runtime.Cfg.WorkDir, "bin", "ibdev2netdev")
-			args.Volumes = append(args.Volumes, &external.VolumeArgs{
-				Source: ibdev2netdevScriptPath,
-				Target: "/usr/sbin/ibdev2netdev",
-			})
-		}
+		args.Volumes = append(args.Volumes, s.GetRdmaVolumes()...)
 	}
 	_, err = s.Em.Docker.Run(ctx, args)
 	if err != nil {
@@ -465,8 +459,13 @@ func (s *upload3FSMainConfigStep) Execute(ctx context.Context) error {
 				Source: getConfigDir(s.serviceWorkDir),
 				Target: "/opt/3fs/etc/",
 			},
+			{
+				Source: "/dev",
+				Target: "/dev",
+			},
 		},
 	}
+	args.Volumes = append(args.Volumes, s.GetRdmaVolumes()...)
 	_, err = s.Em.Docker.Run(ctx, args)
 	if err != nil {
 		return errors.Trace(err)

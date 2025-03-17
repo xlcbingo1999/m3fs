@@ -137,6 +137,7 @@ func (s *initClusterStep) Execute(ctx context.Context) error {
 			},
 		},
 	}
+	args.Volumes = append(args.Volumes, s.GetRdmaVolumes()...)
 	_, err = s.Em.Docker.Run(ctx, args)
 	if err != nil {
 		return errors.Trace(err)

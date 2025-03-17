@@ -17,6 +17,7 @@ package task
 import (
 	"context"
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -151,6 +152,31 @@ func (s *BaseStep) Init(r *Runtime, em *external.Manager, node config.Node) {
 // overridden by the steps that embed the BaseStep struct.
 func (s *BaseStep) Execute(context.Context) error {
 	return nil
+}
+
+// GetRdmaVolumes returns the volumes need mapped to container for the rdma network.
+func (s *BaseStep) GetRdmaVolumes() []*external.VolumeArgs {
+	volumes := []*external.VolumeArgs{}
+	if s.Runtime.Cfg.NetworkType != config.NetworkTypeRDMA {
+		ibdev2netdevScriptPath := path.Join(s.Runtime.Cfg.WorkDir, "bin", "ibdev2netdev")
+		volumes = append(volumes, &external.VolumeArgs{
+			Source: ibdev2netdevScriptPath,
+			Target: "/usr/sbin/ibdev2netdev",
+		})
+	}
+	if s.Runtime.Cfg.NetworkType == config.NetworkTypeERDMA {
+		volumes = append(volumes, []*external.VolumeArgs{
+			{
+				Source: "/etc/libibverbs.d/erdma.driver",
+				Target: "/etc/libibverbs.d/erdma.driver",
+			},
+			{
+				Source: "/usr/lib/x86_64-linux-gnu/libibverbs/liberdma-rdmav34.so",
+				Target: "/usr/lib/x86_64-linux-gnu/libibverbs/liberdma-rdmav34.so",
+			},
+		}...)
+	}
+	return volumes
 }
 
 // LocalStep is an interface that defines the methods that all local steps must implement,
