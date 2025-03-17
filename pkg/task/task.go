@@ -144,6 +144,11 @@ func (s *BaseStep) GetNodeKey(key string) string {
 	return fmt.Sprintf("%s/%s", key, s.Node.Name)
 }
 
+// GetErdmaSoPathKey returns the key for the rdma so file for the node.
+func (s *BaseStep) GetErdmaSoPathKey() string {
+	return fmt.Sprintf("%s-erdma-so", s.Node.Host)
+}
+
 // Init initializes the step with the external manager and the configuration.
 func (s *BaseStep) Init(r *Runtime, em *external.Manager, node config.Node, logger log.Interface) {
 	s.Em = em
@@ -158,6 +163,24 @@ func (s *BaseStep) Execute(context.Context) error {
 	return nil
 }
 
+// GetErdmaSoPath returns the path of the erdma so file.
+func (s *BaseStep) GetErdmaSoPath(ctx context.Context) error {
+	if s.Runtime.Cfg.NetworkType != config.NetworkTypeERDMA {
+		return nil
+	}
+	erdmaSoKey := s.GetErdmaSoPathKey()
+	if _, ok := s.Runtime.Load(erdmaSoKey); ok {
+		return nil
+	}
+	output, err := s.Em.Runner.Exec(ctx,
+		"readlink", "-f", "/usr/lib/x86_64-linux-gnu/libibverbs/liberdma-rdmav34.so")
+	if err != nil {
+		return errors.Annotatef(err, "readlink -f /usr/lib/x86_64-linux-gnu/libibverbs/liberdma-rdmav34.so")
+	}
+	s.Runtime.Store(erdmaSoKey, strings.TrimSpace(output))
+	return nil
+}
+
 // GetRdmaVolumes returns the volumes need mapped to container for the rdma network.
 func (s *BaseStep) GetRdmaVolumes() []*external.VolumeArgs {
 	volumes := []*external.VolumeArgs{}
@@ -169,16 +192,19 @@ func (s *BaseStep) GetRdmaVolumes() []*external.VolumeArgs {
 		})
 	}
 	if s.Runtime.Cfg.NetworkType == config.NetworkTypeERDMA {
-		volumes = append(volumes, []*external.VolumeArgs{
-			{
-				Source: "/etc/libibverbs.d/erdma.driver",
-				Target: "/etc/libibverbs.d/erdma.driver",
-			},
-			{
-				Source: "/usr/lib/x86_64-linux-gnu/libibverbs/liberdma-rdmav34.so",
-				Target: "/usr/lib/x86_64-linux-gnu/libibverbs/liberdma-rdmav34.so",
-			},
-		}...)
+		erdmaSoPath, ok := s.Runtime.Load(s.GetErdmaSoPathKey())
+		if ok {
+			volumes = append(volumes, []*external.VolumeArgs{
+				{
+					Source: "/etc/libibverbs.d/erdma.driver",
+					Target: "/etc/libibverbs.d/erdma.driver",
+				},
+				{
+					Source: erdmaSoPath.(string),
+					Target: "/usr/lib/x86_64-linux-gnu/libibverbs/liberdma-rdmav34.so",
+				},
+			}...)
+		}
 	}
 	return volumes
 }

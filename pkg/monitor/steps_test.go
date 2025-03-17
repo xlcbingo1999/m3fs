@@ -114,6 +114,8 @@ func (s *runContainerStepSuite) Test() {
 			"/opt/3fs/etc/monitor_collector_main.toml",
 		},
 	}
+	s.Runtime.Store(s.step.GetErdmaSoPathKey(),
+		"/usr/lib/x86_64-linux-gnu/libibverbs/liberdma-rdmav34.so")
 	args.Volumes = append(args.Volumes, s.step.GetRdmaVolumes()...)
 	s.MockDocker.On("Run", args).Return("", nil)
 
