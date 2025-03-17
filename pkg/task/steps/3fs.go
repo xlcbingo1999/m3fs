@@ -379,11 +379,12 @@ func (s *rm3FSContainerStep) Execute(ctx context.Context) error {
 	}
 	s.Logger.Infof("Removed %s container config dir %s", s.serviceWorkDir, configDir)
 
-	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", path.Join(s.serviceWorkDir, "log"))
+	logDir := path.Join(s.serviceWorkDir, "log")
+	_, err = s.Em.Runner.Exec(ctx, "rm", "-rf", logDir)
 	if err != nil {
-		return errors.Annotatef(err, "rm %s", path.Join(s.serviceWorkDir, "log"))
+		return errors.Annotatef(err, "rm %s", logDir)
 	}
-	s.Logger.Infof("Removed %s container log dir %s", s.serviceWorkDir, configDir)
+	s.Logger.Infof("Removed %s container log dir %s", s.serviceWorkDir, logDir)
 
 	return nil
 }
