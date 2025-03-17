@@ -118,11 +118,12 @@ func (t *Create3FSClientServiceTask) Init(r *task.Runtime) {
 			Parallel: true,
 			NewStep: steps.NewRun3FSContainerStepFunc(
 				&steps.Run3FSContainerStepSetup{
-					ImgName:       config.ImageName3FS,
-					ContainerName: client.ContainerName,
-					Service:       ServiceName,
-					WorkDir:       workDir,
-					ExtraVolumes:  runContainerVolumes,
+					ImgName:        config.ImageName3FS,
+					ContainerName:  client.ContainerName,
+					Service:        ServiceName,
+					WorkDir:        workDir,
+					ExtraVolumes:   runContainerVolumes,
+					UseRdmaNetwork: true,
 				}),
 		},
 	})

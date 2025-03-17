@@ -30,12 +30,7 @@ func (t *PrepareNetworkTask) Init(r *task.Runtime) {
 	t.BaseTask.SetName("PrepareNetworkTask")
 	nodes := r.Cfg.Nodes
 
-	steps := []task.StepConfig{
-		{
-			Nodes:   nodes,
-			NewStep: func() task.Step { return new(genIbdev2netdevScriptStep) },
-		},
-	}
+	steps := []task.StepConfig{}
 	switch r.Cfg.NetworkType {
 	case config.NetworkTypeRXE:
 		rxeSteps := []task.StepConfig{
@@ -58,6 +53,12 @@ func (t *PrepareNetworkTask) Init(r *task.Runtime) {
 		steps = append(steps, rxeSteps...)
 	case config.NetworkTypeERDMA:
 		// TODO
+	}
+	if r.Cfg.NetworkType != config.NetworkTypeRDMA {
+		steps = append(steps, task.StepConfig{
+			Nodes:   nodes,
+			NewStep: func() task.Step { return new(genIbdev2netdevScriptStep) },
+		})
 	}
 	t.SetSteps(steps)
 }

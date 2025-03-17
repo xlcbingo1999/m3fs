@@ -54,16 +54,15 @@ func (s *genIbdev2netdevScriptStepSuite) SetupTest() {
 func (s *genIbdev2netdevScriptStepSuite) TestGenIbdev2netdevScript() {
 	tmpDir := "/tmp/m3fs-prepare-network.123"
 	s.MockLocalFS.On("MkdirTemp", "/tmp", "m3fs-prepare-network").Return(tmpDir, nil)
-	scriptPath := tmpDir + "/ibdev2netdev"
+	scriptPath := tmpDir + "/gen-ibdev2netdev"
 	s.MockLocalFS.On("WriteFile", scriptPath,
-		[]byte(ibdev2netdevScript), os.FileMode(0755)).Return(nil)
+		[]byte(genIbdev2netdevScript), os.FileMode(0755)).Return(nil)
 
 	binDir := s.Cfg.WorkDir + "/bin"
-	remoteScriptPath := binDir + "/ibdev2netdev"
 	s.MockRunner.On("Exec", "mkdir", []string{"-p", binDir}).Return("", nil)
-	s.MockRunner.On("Scp", scriptPath, remoteScriptPath).Return(nil)
-	s.MockRunner.On("Exec", "chmod", []string{"+x", remoteScriptPath}).Return("", nil)
-
+	remoteGenScriptPath := "/tmp/gen-ibdev2netdev"
+	s.MockRunner.On("Scp", scriptPath, remoteGenScriptPath).Return(nil)
+	s.MockRunner.On("Exec", "bash", []string{remoteGenScriptPath, binDir}).Return("", nil)
 	s.MockLocalFS.On("RemoveAll", tmpDir).Return(nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))

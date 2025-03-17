@@ -16,6 +16,7 @@ package steps
 
 import (
 	"os"
+	"path"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -204,10 +205,13 @@ func (s *run3FSContainerStepSuite) SetupTest() {
 	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, "xxxx")
 }
 
-func (s *run3FSContainerStepSuite) TestRunContainer() {
+func (s *run3FSContainerStepSuite) testRunContainer(
+	useRdmaNetwork bool, networkType config.NetworkType) {
+	s.step.useRdmaNetwork = useRdmaNetwork
+	s.step.Runtime.Cfg.NetworkType = networkType
 	img, err := s.Runtime.Cfg.Images.GetImage(config.ImageName3FS)
 	s.NoError(err)
-	s.MockDocker.On("Run", &external.RunArgs{
+	args := &external.RunArgs{
 		Image:       img,
 		Name:        &s.Cfg.Services.Mgmtd.ContainerName,
 		Detach:      common.Pointer(true),
@@ -231,12 +235,35 @@ func (s *run3FSContainerStepSuite) TestRunContainer() {
 				Target: "/var/log/3fs",
 			},
 		},
-	}).Return("", nil)
+	}
+	if useRdmaNetwork && networkType != config.NetworkTypeRDMA {
+		args.Volumes = append(args.Volumes, &external.VolumeArgs{
+			Source: path.Join(s.Runtime.Cfg.WorkDir, "bin", "ibdev2netdev"),
+			Target: "/usr/sbin/ibdev2netdev",
+		})
+	}
+	s.MockDocker.On("Run", args).Return("", nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
 	s.MockRunner.AssertExpectations(s.T())
 	s.MockDocker.AssertExpectations(s.T())
+}
+
+func (s *run3FSContainerStepSuite) TestRunContainerWithRdmaNetwork() {
+	s.testRunContainer(true, config.NetworkTypeRDMA)
+}
+
+func (s *run3FSContainerStepSuite) TestRunContainerWithErdmaNetwork() {
+	s.testRunContainer(true, config.NetworkTypeERDMA)
+}
+
+func (s *run3FSContainerStepSuite) TestRunContainerWithRxeRdmaNetwork() {
+	s.testRunContainer(true, config.NetworkTypeRXE)
+}
+
+func (s *run3FSContainerStepSuite) TestRunContainerWithoutRdmaNetwork() {
+	s.testRunContainer(false, config.NetworkTypeRDMA)
 }
 
 func TestRm3FSContainerStepSuite(t *testing.T) {
