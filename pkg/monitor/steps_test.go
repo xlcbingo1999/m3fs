@@ -88,7 +88,7 @@ func (s *runContainerStepSuite) Test() {
 		"/root/3fs/monitor/etc/monitor_collector_main.toml").Return(nil)
 	img, err := s.Runtime.Cfg.Images.GetImage(config.ImageName3FS)
 	s.NoError(err)
-	s.MockDocker.On("Run", &external.RunArgs{
+	args := &external.RunArgs{
 		Image:       img,
 		Name:        common.Pointer("3fs-monitor"),
 		HostNetwork: true,
@@ -113,7 +113,9 @@ func (s *runContainerStepSuite) Test() {
 			"--cfg",
 			"/opt/3fs/etc/monitor_collector_main.toml",
 		},
-	}).Return("", nil)
+	}
+	args.Volumes = append(args.Volumes, s.step.GetRdmaVolumes()...)
+	s.MockDocker.On("Run", args).Return("", nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 

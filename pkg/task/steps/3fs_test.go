@@ -16,7 +16,6 @@ package steps
 
 import (
 	"os"
-	"path"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -240,11 +239,8 @@ func (s *run3FSContainerStepSuite) testRunContainer(
 			},
 		},
 	}
-	if useRdmaNetwork && networkType != config.NetworkTypeRDMA {
-		args.Volumes = append(args.Volumes, &external.VolumeArgs{
-			Source: path.Join(s.Runtime.Cfg.WorkDir, "bin", "ibdev2netdev"),
-			Target: "/usr/sbin/ibdev2netdev",
-		})
+	if useRdmaNetwork {
+		args.Volumes = append(args.Volumes, s.step.GetRdmaVolumes()...)
 	}
 	s.MockDocker.On("Run", args).Return("", nil)
 
@@ -347,7 +343,7 @@ func (s *upload3FSMainConfigStepSuite) SetupTest() {
 func (s *upload3FSMainConfigStepSuite) TestUploadConfig() {
 	img, err := s.Runtime.Cfg.Images.GetImage(config.ImageName3FS)
 	s.NoError(err)
-	s.MockDocker.On("Run", &external.RunArgs{
+	args := &external.RunArgs{
 		Image:       img,
 		Name:        &s.Cfg.Services.Meta.ContainerName,
 		HostNetwork: true,
@@ -369,8 +365,15 @@ func (s *upload3FSMainConfigStepSuite) TestUploadConfig() {
 				Source: s.configDir,
 				Target: "/opt/3fs/etc/",
 			},
+			{
+				Source: "/dev",
+				Target: "/dev",
+			},
 		},
-	}).Return("", nil)
+	}
+	args.Volumes = append(args.Volumes, s.step.GetRdmaVolumes()...)
+
+	s.MockDocker.On("Run", args).Return("", nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
