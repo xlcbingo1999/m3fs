@@ -222,6 +222,45 @@ func (s *createRdmaRxeLinkStep) Execute(ctx context.Context) error {
 	return nil
 }
 
+type loadErdmaModuleStep struct {
+	task.BaseStep
+}
+
+func (s *loadErdmaModuleStep) Execute(ctx context.Context) error {
+	s.Logger.Debugf("Loading erdma kernel module for %s", s.Node.Host)
+	needLoadModule := false
+	_, err := s.Em.Runner.Exec(ctx, "ls", "/sys/module/erdma")
+	if err != nil && strings.Contains(err.Error(), "No such file or directory") {
+		needLoadModule = true
+	} else if err != nil {
+		return errors.Annotatef(err, "ls /sys/module/erdma")
+	}
+
+	if !needLoadModule {
+		output, err := s.Em.Runner.Exec(ctx, "cat", "/sys/module/erdma/parameters/compat_mode")
+		if err != nil {
+			return errors.Annotatef(err, "cat /sys/module/erdma/parameters/compat_mode")
+		}
+		if strings.TrimSpace(output) == "Y" {
+			return nil
+		}
+		needLoadModule = true
+		s.Logger.Infof("erdma module not running in compat mode, try to remove it")
+		// remove module may return error, but we don't care
+		_, _ = s.Em.Runner.Exec(ctx, "modprobe", "-r", "erdma")
+	}
+
+	if needLoadModule {
+		s.Logger.Infof("Loading erdma module with compat mode")
+		_, err = s.Em.Runner.Exec(ctx, "modprobe", "erdma", "compat_mode=1")
+		if err != nil {
+			return errors.Annotatef(err, "modprobe erdma")
+		}
+	}
+
+	return nil
+}
+
 type deleteIbdev2netdevScriptStep struct {
 	task.BaseStep
 }
