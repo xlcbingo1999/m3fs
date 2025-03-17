@@ -74,5 +74,10 @@ func (t *ImportArtifactTask) Init(r *task.Runtime) {
 			Parallel: true,
 			NewStep:  func() task.Step { return new(importArtifactStep) },
 		},
+		{
+			Nodes:    r.Cfg.Nodes,
+			Parallel: true,
+			NewStep:  func() task.Step { return new(removeArtifactStep) },
+		},
 	})
 }

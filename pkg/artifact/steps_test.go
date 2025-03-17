@@ -253,3 +253,95 @@ func (s *distributeArtifactStepSuite) TestWithNotExisted() {
 	s.MockFS.AssertExpectations(s.T())
 	s.MockRunner.AssertExpectations(s.T())
 }
+
+type importImageInfo struct {
+	imageName string
+	fileName  string
+	filePath  string
+	image     string
+}
+
+func newImportImageInfo(r *task.Runtime, imageName string) *importImageInfo {
+	fileName, _ := r.Cfg.Images.GetImageFileName(imageName)
+	image, _ := r.Cfg.Images.GetImage(imageName)
+	return &importImageInfo{
+		imageName: imageName,
+		fileName:  fileName,
+		filePath:  fmt.Sprintf("/root/3fs/artifact-xxx/%s", fileName),
+		image:     image,
+	}
+}
+
+func TestImportArtifactStep(t *testing.T) {
+	suiteRun(t, &importArtifactStepSuite{})
+}
+
+type importArtifactStepSuite struct {
+	ttask.StepSuite
+
+	step   *importArtifactStep
+	images []*importImageInfo
+}
+
+func (s *importArtifactStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.step = &importArtifactStep{}
+	s.SetupRuntime()
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.Runtime.Store(task.RuntimeArtifactTmpDirKey, "/root/3fs/artifact-xxx")
+	s.images = []*importImageInfo{
+		newImportImageInfo(s.Runtime, config.ImageNameFdb),
+		newImportImageInfo(s.Runtime, config.ImageNameClickhouse),
+		newImportImageInfo(s.Runtime, config.ImageName3FS),
+	}
+}
+
+func (s *importArtifactStepSuite) TestWithoutRegistry() {
+	for _, image := range s.images {
+		s.MockDocker.On("Load", image.filePath).Return("", nil)
+	}
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	s.MockDocker.AssertExpectations(s.T())
+}
+
+func (s *importArtifactStepSuite) TestWithReigstry() {
+	s.Runtime.Cfg.Images.Registry = "harbor.xxx.com"
+	for _, image := range s.images {
+		s.MockDocker.On("Load", image.filePath).Return("", nil)
+		s.MockDocker.On("Tag", image.image, "harbor.xxx.com/"+image.image).Return(nil)
+	}
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	s.MockDocker.AssertExpectations(s.T())
+}
+
+func TestRemoveArtifactStep(t *testing.T) {
+	suiteRun(t, &removeArtifactStepSuite{})
+}
+
+type removeArtifactStepSuite struct {
+	ttask.StepSuite
+
+	step *removeArtifactStep
+}
+
+func (s *removeArtifactStepSuite) SetupTest() {
+	s.StepSuite.SetupTest()
+
+	s.step = &removeArtifactStep{}
+	s.SetupRuntime()
+	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.Runtime.Store(task.RuntimeArtifactTmpDirKey, "/root/3fs/artifact-xxx")
+}
+
+func (s *removeArtifactStepSuite) Test() {
+	s.MockRunner.On("Exec", "rm", []string{"-rf", "/root/3fs/artifact-xxx"}).Return("", nil)
+
+	s.NoError(s.step.Execute(s.Ctx()))
+
+	s.MockRunner.AssertExpectations(s.T())
+}

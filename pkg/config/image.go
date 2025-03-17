@@ -57,11 +57,10 @@ func (i *Images) getImage(imgName string) (Image, error) {
 
 // GetImage get image path of target component
 func (i *Images) GetImage(imgName string) (string, error) {
-	img, err := i.getImage(imgName)
+	imagePath, err := i.GetImageWithoutRegistry(imgName)
 	if err != nil {
 		return "", errors.Trace(err)
 	}
-	imagePath := fmt.Sprintf("%s:%s", img.Repo, img.Tag)
 	if i.Registry != "" {
 		var err error
 		imagePath, err = url.JoinPath(i.Registry, imagePath)
@@ -71,6 +70,15 @@ func (i *Images) GetImage(imgName string) (string, error) {
 	}
 
 	return imagePath, nil
+}
+
+// GetImageWithoutRegistry get image path without registry
+func (i *Images) GetImageWithoutRegistry(imgName string) (string, error) {
+	img, err := i.getImage(imgName)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	return fmt.Sprintf("%s:%s", img.Repo, img.Tag), nil
 }
 
 // GetImageFileName gets image file name
