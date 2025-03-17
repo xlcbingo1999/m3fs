@@ -19,6 +19,7 @@ import (
 
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
+	"github.com/open3fs/m3fs/pkg/log"
 	"github.com/open3fs/m3fs/pkg/task"
 )
 
@@ -30,9 +31,9 @@ type ExportArtifactTask struct {
 }
 
 // Init initializes the task.
-func (t *ExportArtifactTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
+func (t *ExportArtifactTask) Init(r *task.Runtime, logger log.Interface) {
 	t.BaseTask.SetName("ExportArtifactTask")
+	t.BaseTask.Init(r, logger)
 	t.localSteps = []task.LocalStep{
 		new(prepareTmpDirStep),
 		new(downloadImagesStep),
@@ -43,7 +44,7 @@ func (t *ExportArtifactTask) Init(r *task.Runtime) {
 // Run runs task steps
 func (t *ExportArtifactTask) Run(ctx context.Context) error {
 	for _, step := range t.localSteps {
-		step.Init(t.Runtime)
+		step.Init(t.Runtime, log.Logger.Subscribe(log.FieldKeyNode, "<LOCAL>"))
 		if err := step.Execute(ctx); err != nil {
 			return errors.Trace(err)
 		}
@@ -57,9 +58,9 @@ type ImportArtifactTask struct {
 }
 
 // Init initializes the task.
-func (t *ImportArtifactTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
+func (t *ImportArtifactTask) Init(r *task.Runtime, logger log.Interface) {
 	t.BaseTask.SetName("ImportArtifactTask")
+	t.BaseTask.Init(r, logger)
 	t.SetSteps([]task.StepConfig{
 		{
 			Nodes:   []config.Node{r.Cfg.Nodes[0]},

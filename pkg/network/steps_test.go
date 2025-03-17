@@ -48,7 +48,7 @@ func (s *genIbdev2netdevScriptStepSuite) SetupTest() {
 		},
 	}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0])
+	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0], s.Logger)
 }
 
 func (s *genIbdev2netdevScriptStepSuite) TestGenIbdev2netdevScript() {
@@ -93,7 +93,7 @@ func (s *installRdmaPackageStepSuite) SetupTest() {
 		},
 	}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0])
+	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0], s.Logger)
 }
 
 func (s *installRdmaPackageStepSuite) TestInstallRdmaPackage() {
@@ -126,7 +126,7 @@ func (s *loadRdmaRxeModuleStepSuite) SetupTest() {
 		},
 	}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0])
+	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0], s.Logger)
 }
 
 func (s *loadRdmaRxeModuleStepSuite) TestLoadRdmaRxeModule() {
@@ -178,7 +178,7 @@ func (s *createRdmaRxeLinkStepSuite) SetupTest() {
 		},
 	}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0])
+	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0], s.Logger)
 }
 
 func (s *createRdmaRxeLinkStepSuite) TestCreateRdmaRxeLinkStep() {
@@ -225,7 +225,7 @@ func (s *deleteIbdev2netdevScriptStepSuite) SetupTest() {
 		},
 	}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0])
+	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0], s.Logger)
 }
 
 func (s *deleteIbdev2netdevScriptStepSuite) TestDeleteIbdev2netdevScriptStep() {
@@ -258,7 +258,7 @@ func (s *deleteRdmaRxeLinkScriptStepSuite) SetupTest() {
 		},
 	}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0])
+	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0], s.Logger)
 }
 
 func (s *deleteRdmaRxeLinkScriptStepSuite) TestDeleteRdmaRxeLinkScriptStep() {

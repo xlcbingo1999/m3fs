@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/open3fs/m3fs/pkg/errors"
+	"github.com/open3fs/m3fs/pkg/log"
 )
 
 // FSInterface provides interface about local fs, this is not implemented for remote runner.
@@ -49,8 +50,8 @@ type fsExternal struct {
 	returnUnimplemented bool
 }
 
-func (fe *fsExternal) init(em *Manager) {
-	fe.externalBase.init(em)
+func (fe *fsExternal) init(em *Manager, logger log.Interface) {
+	fe.externalBase.init(em, logger)
 	em.FS = fe
 	if _, ok := em.Runner.(*RemoteRunner); ok {
 		fe.returnUnimplemented = true

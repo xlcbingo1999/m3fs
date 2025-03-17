@@ -58,7 +58,7 @@ func (s *gen3FSNodeIDStepSuite) SetupTest() {
 	s.SetupRuntime()
 	s.step = NewGen3FSNodeIDStepFunc("mgmtd_main",
 		1, s.Cfg.Services.Mgmtd.Nodes)().(*gen3FSNodeIDStep)
-	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0])
+	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0], s.Logger)
 }
 
 func (s *gen3FSNodeIDStepSuite) TestGenNodeID() {
@@ -116,7 +116,7 @@ mgmtd_server_addresses = {{ .MgmtdServerAddresses }}
 listen_port = {{ .TCPListenPort }}
 listen_port_rdma = {{ .RDMAListenPort }}`),
 	})().(*prepare3FSConfigStep)
-	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0])
+	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0], s.Logger)
 	s.Runtime.Store(getNodeIDKey("mgmtd_main", s.Cfg.Nodes[0].Name), 1)
 	s.fdbContent = "xxxx,xxxxx,xxxx"
 	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, s.fdbContent)
@@ -200,7 +200,7 @@ func (s *run3FSContainerStepSuite) SetupTest() {
 			Service:       "mgmtd_main",
 			WorkDir:       "/root/3fs/mgmtd",
 		})().(*run3FSContainerStep)
-	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.step.Init(s.Runtime, s.MockEm, config.Node{}, s.Logger)
 	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, "xxxx")
 }
 
@@ -284,7 +284,7 @@ func (s *rm3FSContainerStepSuite) SetupTest() {
 	s.SetupRuntime()
 	s.step = NewRm3FSContainerStepFunc(s.Cfg.Services.Mgmtd.ContainerName,
 		"mgmtd_main", "/root/3fs/mgmtd")().(*rm3FSContainerStep)
-	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.step.Init(s.Runtime, s.MockEm, config.Node{}, s.Logger)
 }
 
 func (s *rm3FSContainerStepSuite) TestRmContainerStep() {
@@ -336,7 +336,7 @@ func (s *upload3FSMainConfigStepSuite) SetupTest() {
 	s.SetupRuntime()
 	s.step = NewUpload3FSMainConfigStepFunc(config.ImageName3FS, s.Cfg.Services.Meta.ContainerName,
 		"meta_main", "/root/3fs/meta", "META")().(*upload3FSMainConfigStep)
-	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.step.Init(s.Runtime, s.MockEm, config.Node{}, s.Logger)
 	s.Runtime.Store(task.RuntimeMgmtdServerAddressesKey, `["RDMA://1.1.1.1:8000"]`)
 }
 
@@ -417,7 +417,7 @@ func (s *remoteRunScriptStepSuite) SetupTest() {
 			"a", "b",
 		},
 	)().(*remoteRunScriptStep)
-	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0])
+	s.step.Init(s.Runtime, s.MockEm, s.Cfg.Nodes[0], s.Logger)
 	s.Runtime.Store(getNodeIDKey("storage_main", s.Cfg.Nodes[0].Name), 1)
 	s.fdbContent = "xxxx,xxxxx,xxxx"
 	s.Runtime.Store(task.RuntimeFdbClusterFileContentKey, s.fdbContent)

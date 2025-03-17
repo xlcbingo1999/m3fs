@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/open3fs/m3fs/pkg/errors"
+	"github.com/open3fs/m3fs/pkg/log"
 )
 
 // DockerInterface provides interface about docker.
@@ -35,8 +36,8 @@ type dockerExternal struct {
 	externalBase
 }
 
-func (de *dockerExternal) init(em *Manager) {
-	de.externalBase.init(em)
+func (de *dockerExternal) init(em *Manager, logger log.Interface) {
+	de.externalBase.init(em, logger)
 	em.Docker = de
 }
 

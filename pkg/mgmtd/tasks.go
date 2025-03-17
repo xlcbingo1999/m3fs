@@ -18,6 +18,7 @@ import (
 	"path"
 
 	"github.com/open3fs/m3fs/pkg/config"
+	"github.com/open3fs/m3fs/pkg/log"
 	"github.com/open3fs/m3fs/pkg/task"
 	"github.com/open3fs/m3fs/pkg/task/steps"
 )
@@ -35,9 +36,9 @@ type CreateMgmtdServiceTask struct {
 }
 
 // Init initializes the task.
-func (t *CreateMgmtdServiceTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
+func (t *CreateMgmtdServiceTask) Init(r *task.Runtime, logger log.Interface) {
 	t.BaseTask.SetName("CreateMgmtdServiceTask")
+	t.BaseTask.Init(r, logger)
 	nodes := make([]config.Node, len(r.Cfg.Services.Mgmtd.Nodes))
 	for i, node := range r.Cfg.Services.Mgmtd.Nodes {
 		nodes[i] = r.Nodes[node]
@@ -89,9 +90,9 @@ type DeleteMgmtdServiceTask struct {
 }
 
 // Init initializes the task.
-func (t *DeleteMgmtdServiceTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
+func (t *DeleteMgmtdServiceTask) Init(r *task.Runtime, logger log.Interface) {
 	t.BaseTask.SetName("DeleteMgmtdServiceTask")
+	t.BaseTask.Init(r, logger)
 	nodes := make([]config.Node, len(r.Cfg.Services.Mgmtd.Nodes))
 	for i, node := range r.Cfg.Services.Mgmtd.Nodes {
 		nodes[i] = r.Nodes[node]
@@ -113,9 +114,9 @@ type InitUserAndChainTask struct {
 }
 
 // Init initializes the task.
-func (t *InitUserAndChainTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
+func (t *InitUserAndChainTask) Init(r *task.Runtime, logger log.Interface) {
 	t.BaseTask.SetName("InitUserAndChainTask")
+	t.BaseTask.Init(r, logger)
 	nodes := make([]config.Node, len(r.Cfg.Services.Mgmtd.Nodes))
 	for i, node := range r.Cfg.Services.Mgmtd.Nodes {
 		nodes[i] = r.Nodes[node]

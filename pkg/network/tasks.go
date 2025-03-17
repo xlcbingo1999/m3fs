@@ -16,6 +16,7 @@ package network
 
 import (
 	"github.com/open3fs/m3fs/pkg/config"
+	"github.com/open3fs/m3fs/pkg/log"
 	"github.com/open3fs/m3fs/pkg/task"
 )
 
@@ -25,9 +26,9 @@ type PrepareNetworkTask struct {
 }
 
 // Init initializes the task.
-func (t *PrepareNetworkTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
+func (t *PrepareNetworkTask) Init(r *task.Runtime, logger log.Interface) {
 	t.BaseTask.SetName("PrepareNetworkTask")
+	t.BaseTask.Init(r, logger)
 	nodes := r.Cfg.Nodes
 
 	steps := []task.StepConfig{}
@@ -69,9 +70,9 @@ type DeleteNetworkTask struct {
 }
 
 // Init initializes the task.
-func (t *DeleteNetworkTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
+func (t *DeleteNetworkTask) Init(r *task.Runtime, logger log.Interface) {
 	t.BaseTask.SetName("DeleteNetworkTask")
+	t.BaseTask.Init(r, logger)
 	nodes := r.Cfg.Nodes
 
 	steps := []task.StepConfig{

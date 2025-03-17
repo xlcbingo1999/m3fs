@@ -16,6 +16,7 @@ package fdb
 
 import (
 	"github.com/open3fs/m3fs/pkg/config"
+	"github.com/open3fs/m3fs/pkg/log"
 	"github.com/open3fs/m3fs/pkg/task"
 )
 
@@ -25,9 +26,9 @@ type CreateFdbClusterTask struct {
 }
 
 // Init initializes the task.
-func (t *CreateFdbClusterTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
-	t.BaseTask.SetName("CreateFdbClusterTask")
+func (t *CreateFdbClusterTask) Init(r *task.Runtime, logger log.Interface) {
+	t.BaseTask.SetName("CreatedbClusterTask")
+	t.BaseTask.Init(r, logger)
 	nodes := make([]config.Node, len(r.Cfg.Services.Fdb.Nodes))
 	for i, node := range r.Cfg.Services.Fdb.Nodes {
 		nodes[i] = r.Nodes[node]
@@ -55,9 +56,9 @@ type DeleteFdbClusterTask struct {
 }
 
 // Init initializes the task.
-func (t *DeleteFdbClusterTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
+func (t *DeleteFdbClusterTask) Init(r *task.Runtime, logger log.Interface) {
 	t.BaseTask.SetName("DeleteFdbClusterTask")
+	t.BaseTask.Init(r, logger)
 	nodes := make([]config.Node, len(r.Cfg.Services.Fdb.Nodes))
 	for i, node := range r.Cfg.Services.Fdb.Nodes {
 		nodes[i] = r.Nodes[node]

@@ -16,6 +16,7 @@ package clickhouse
 
 import (
 	"github.com/open3fs/m3fs/pkg/config"
+	"github.com/open3fs/m3fs/pkg/log"
 	"github.com/open3fs/m3fs/pkg/task"
 )
 
@@ -25,9 +26,9 @@ type CreateClickhouseClusterTask struct {
 }
 
 // Init initializes the task.
-func (t *CreateClickhouseClusterTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
+func (t *CreateClickhouseClusterTask) Init(r *task.Runtime, logger log.Interface) {
 	t.BaseTask.SetName("CreateClickhouseClusterTask")
+	t.BaseTask.Init(r, logger)
 	nodes := make([]config.Node, len(r.Cfg.Services.Clickhouse.Nodes))
 	for i, node := range r.Cfg.Services.Clickhouse.Nodes {
 		nodes[i] = r.Nodes[node]
@@ -54,9 +55,9 @@ type DeleteClickhouseClusterTask struct {
 }
 
 // Init initializes the task.
-func (t *DeleteClickhouseClusterTask) Init(r *task.Runtime) {
-	t.BaseTask.Init(r)
+func (t *DeleteClickhouseClusterTask) Init(r *task.Runtime, logger log.Interface) {
 	t.BaseTask.SetName("DeleteClickhouseClusterTask")
+	t.BaseTask.Init(r, logger)
 	nodes := make([]config.Node, len(r.Cfg.Services.Clickhouse.Nodes))
 	for i, node := range r.Cfg.Services.Clickhouse.Nodes {
 		nodes[i] = r.Nodes[node]

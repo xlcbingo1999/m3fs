@@ -42,7 +42,7 @@ func (s *prepareTmpDirStepSuite) SetupTest() {
 
 	s.step = &prepareTmpDirStep{}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime)
+	s.step.Init(s.Runtime, s.Logger)
 	s.Runtime.Store(task.RuntimeArtifactTmpDirKey, "/tmp/3fs")
 }
 
@@ -89,7 +89,7 @@ func (s *downloadImagesStepSuite) SetupTest() {
 
 	s.step = &downloadImagesStep{}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime)
+	s.step.Init(s.Runtime, s.Logger)
 	s.Runtime.Store(task.RuntimeArtifactTmpDirKey, "/tmp/3fs")
 	s.images = []*downloadImageInfo{
 		newDownloadImageInfo(s.Runtime, config.ImageNameFdb),
@@ -153,7 +153,7 @@ func (s *tarFilesStepSuite) SetupTest() {
 
 	s.step = &tarFilesStep{}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime)
+	s.step.Init(s.Runtime, s.Logger)
 	s.Runtime.Store(task.RuntimeArtifactFilePathsKey,
 		[]string{"/tmp/3fs/3fs_20250315_amd64.docker"})
 	s.Runtime.Store(task.RuntimeArtifactTmpDirKey, "/tmp/3fs")
@@ -187,7 +187,7 @@ func (s *sha256sumArtifactStepSuite) SetupTest() {
 
 	s.step = &sha256sumArtifactStep{}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.step.Init(s.Runtime, s.MockEm, config.Node{}, s.Logger)
 	s.Runtime.Store(task.RuntimeArtifactPathKey, "/root/3fs.tar.gz")
 }
 
@@ -216,7 +216,7 @@ func (s *distributeArtifactStepSuite) SetupTest() {
 
 	s.step = &distributeArtifactStep{}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.step.Init(s.Runtime, s.MockEm, config.Node{}, s.Logger)
 	s.Runtime.Store(task.RuntimeArtifactPathKey, "/root/3fs.tar.gz")
 	s.Runtime.Store(task.RuntimeArtifactSha256sumKey, "xxx")
 }
@@ -282,7 +282,7 @@ func (s *importArtifactStepSuite) SetupTest() {
 
 	s.step = &importArtifactStep{}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.step.Init(s.Runtime, s.MockEm, config.Node{}, s.Logger)
 	s.Runtime.Store(s.step.GetNodeKey(task.RuntimeArtifactTmpDirKey), "/root/3fs/artifact-xxx")
 	s.images = []*importImageInfo{
 		newImportImageInfo(s.Runtime, config.ImageNameFdb),
@@ -328,7 +328,7 @@ func (s *removeArtifactStepSuite) SetupTest() {
 
 	s.step = &removeArtifactStep{}
 	s.SetupRuntime()
-	s.step.Init(s.Runtime, s.MockEm, config.Node{})
+	s.step.Init(s.Runtime, s.MockEm, config.Node{}, s.Logger)
 	s.Runtime.Store(s.step.GetNodeKey(task.RuntimeArtifactTmpDirKey), "/root/3fs/artifact-xxx")
 }
 

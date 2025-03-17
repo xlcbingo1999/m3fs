@@ -14,6 +14,8 @@
 
 package external
 
+import "github.com/open3fs/m3fs/pkg/log"
+
 // NetInterface provides interface about network.
 type NetInterface interface {
 	GetRdmaLinks() ([]string, error)
@@ -23,8 +25,8 @@ type netExternal struct {
 	externalBase
 }
 
-func (ne *netExternal) init(em *Manager) {
-	ne.externalBase.init(em)
+func (ne *netExternal) init(em *Manager, logger log.Interface) {
+	ne.externalBase.init(em, logger)
 	em.Net = ne
 }
 
