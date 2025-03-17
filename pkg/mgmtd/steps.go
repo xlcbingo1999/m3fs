@@ -107,7 +107,7 @@ func (s *initClusterStep) Execute(ctx context.Context) error {
 
 	workDir := getServiceWorkDir(s.Runtime.WorkDir)
 	logDir := path.Join(workDir, "log")
-	_, err = s.Em.Runner.Exec(ctx, "mkdir", "-p", logDir)
+	err = s.Em.FS.MkdirAll(ctx, logDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", logDir)
 	}

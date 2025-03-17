@@ -182,7 +182,39 @@ func (mr *MockedRunner) CalledExecCount(cmdPrefix string) int {
 	return mr.execResults[cmdPrefix].Count()
 }
 
-// Exec executes a command.
+// NonSudoExec executes a command.
+func (mr *MockedRunner) NonSudoExec(ctx context.Context, command string, args ...string) (string, error) {
+	cmdLine := strings.Join(append([]string{command}, args...), " ")
+	mr.t.Logf("Processing: %s", cmdLine)
+	for cmdPrefix, results := range mr.execResults {
+		if !strings.Contains(cmdLine, cmdPrefix) {
+			continue
+		}
+		var result *MockedExecResult
+		var found bool
+		for _, result = range results {
+			if result.times != 0 {
+				found = true
+				break
+			}
+		}
+		if !found {
+			continue
+		}
+		result.Called = true
+		result.Count++
+		if result.times > 0 {
+			result.times--
+		}
+		if result.checkFunc != nil {
+			return result.checkFunc(mr, command, args...)
+		}
+		return result.value, result.err
+	}
+
+	return "", fmt.Errorf("Unknown cmd: %s", cmdLine)
+}
+
 func (mr *MockedRunner) Exec(ctx context.Context, command string, args ...string) (string, error) {
 	cmdLine := strings.Join(append([]string{command}, args...), " ")
 	mr.t.Logf("Processing: %s", cmdLine)

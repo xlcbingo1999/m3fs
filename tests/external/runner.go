@@ -28,6 +28,16 @@ type MockRunner struct {
 	external.RunnerInterface
 }
 
+// NonSudoExec mock.
+func (m *MockRunner) NonSudoExec(ctx context.Context, cmd string, args ...string) (string, error) {
+	arg := m.Called(cmd, args)
+	err1 := arg.Error(1)
+	if err1 != nil {
+		return "", err1
+	}
+	return arg.String(0), nil
+}
+
 // Exec mock.
 func (m *MockRunner) Exec(ctx context.Context, cmd string, args ...string) (string, error) {
 	arg := m.Called(cmd, args)

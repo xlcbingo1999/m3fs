@@ -123,7 +123,7 @@ func (s *prepare3FSConfigStep) Execute(ctx context.Context) error {
 	}()
 
 	s.Logger.Infof("Create %s config dir %s", s.service, s.serviceWorkDir)
-	if _, err = s.Em.Runner.Exec(ctx, "mkdir", "-p", s.serviceWorkDir); err != nil {
+	if err = s.Em.FS.MkdirAll(ctx, s.serviceWorkDir); err != nil {
 		return errors.Trace(err)
 	}
 
@@ -511,29 +511,31 @@ func (s *remoteRunScriptStep) Execute(ctx context.Context) error {
 	}()
 
 	tmpScriptPath := path.Join(tmpDir, "/tmp_script.sh")
-	if err = localEm.FS.WriteFile(tmpScriptPath, s.script, os.FileMode(0775)); err != nil {
+	if err = localEm.FS.WriteFile(tmpScriptPath, s.script, os.FileMode(0777)); err != nil {
 		return errors.Trace(err)
 	}
 
-	if _, err = s.Em.Runner.Exec(ctx, "mkdir", "-p", s.workDir); err != nil {
+	if err = s.Em.FS.MkdirAll(ctx, s.workDir); err != nil {
 		return errors.Trace(err)
 	}
-	out, err := s.Em.Runner.Exec(ctx, "mktemp", "-p", s.workDir)
+	remoteFile, err := s.Em.FS.MkTempFile(ctx, s.workDir)
 	if err != nil {
-		return errors.Annotate(err, "mktemp")
+		return errors.Annotate(err, "make temp file")
 	}
-	remoteFile := strings.TrimSpace(out)
+
 	defer func() {
 		if _, err := s.Em.Runner.Exec(ctx, "rm", "-f", remoteFile); err != nil {
 			s.Logger.Errorf("Failed to remove remote file %s: %v", remoteFile, err)
 		}
 	}()
+
+	s.Logger.Infof("Scp %s to %s", tmpScriptPath, remoteFile)
 	if err = s.Em.Runner.Scp(tmpScriptPath, remoteFile); err != nil {
 		return errors.Trace(err)
 	}
 
 	s.Logger.Infof("Run %s with %v", s.scriptName, s.scriptArgs)
-	out, err = s.Em.Runner.Exec(ctx, "bash", append([]string{remoteFile}, s.scriptArgs...)...)
+	out, err := s.Em.Runner.Exec(ctx, "bash", append([]string{remoteFile}, s.scriptArgs...)...)
 	if err != nil {
 		return errors.Trace(err)
 	}

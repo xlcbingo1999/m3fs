@@ -31,6 +31,7 @@ import (
 // FSInterface provides interface about local fs, this is not implemented for remote runner.
 type FSInterface interface {
 	MkdirTemp(context.Context, string, string) (string, error)
+	MkTempFile(context.Context, string) (string, error)
 	MkdirAll(context.Context, string) error
 	RemoveAll(string) error
 	WriteFile(string, []byte, os.FileMode) error
@@ -61,11 +62,29 @@ func (fe *fsExternal) MkdirTemp(ctx context.Context, dir, prefix string) (string
 	if err != nil {
 		return "", errors.Trace(err)
 	}
-	return strings.TrimSpace(out), nil
+	dirPaht := strings.TrimSpace(out)
+	_, err = fe.run(ctx, "chmod", "0777", dirPaht)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	return dirPaht, nil
+}
+
+func (fe *fsExternal) MkTempFile(ctx context.Context, dir string) (string, error) {
+	out, err := fe.run(ctx, "mktemp", "-p", dir)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	filePath := strings.TrimSpace(out)
+	_, err = fe.run(ctx, "chmod", "0777", filePath)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	return filePath, nil
 }
 
 func (fe *fsExternal) MkdirAll(ctx context.Context, dir string) error {
-	_, err := fe.run(ctx, "mkdir", "-p", "-m", "777", dir)
+	_, err := fe.run(ctx, "mkdir", "-m", "0777", "-p", dir)
 	return errors.Trace(err)
 }
 

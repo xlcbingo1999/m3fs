@@ -33,8 +33,8 @@ type LocalRunner struct {
 	maxExitTimeout time.Duration
 }
 
-// Exec executes a command.
-func (r *LocalRunner) Exec(ctx context.Context, command string, args ...string) (string, error) {
+// NonSudoExec executes a command.
+func (r *LocalRunner) NonSudoExec(ctx context.Context, command string, args ...string) (string, error) {
 	checkErr := func(err error, errOut string) RunError {
 		switch err {
 		case context.Canceled:
@@ -71,6 +71,11 @@ func (r *LocalRunner) Exec(ctx context.Context, command string, args ...string) 
 	}
 
 	return out.String(), nil
+}
+
+// Exec executes a command with sudo
+func (r *LocalRunner) Exec(ctx context.Context, cmd string, args ...string) (string, error) {
+	return r.NonSudoExec(ctx, "sudo", append([]string{cmd}, args...)...)
 }
 
 // Scp copy local file or dir to remote host.

@@ -158,13 +158,13 @@ func (s *prepare3FSConfigStepSuite) testPrepareConfig(removeAllErr error) {
 	s.mockGenConfig(tmpDir+"/admin_cli.toml", adminCli)
 	s.MockLocalFS.On("WriteFile", tmpDir+"/fdb.cluster", []byte(s.fdbContent), os.FileMode(0644)).
 		Return(nil)
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", "/root/3fs/mgmtd"}).
-		Return("", nil)
+	s.MockFS.On("MkdirAll", "/root/3fs/mgmtd").Return(nil)
 	s.MockRunner.On("Scp", tmpDir, "/root/3fs/mgmtd/config.d").Return(nil)
 
 	s.NoError(s.step.Execute(s.Ctx()))
 
 	s.MockLocalFS.AssertExpectations(s.T())
+	s.MockFS.AssertExpectations(s.T())
 	s.MockRunner.AssertExpectations(s.T())
 }
 
@@ -424,12 +424,10 @@ func (s *remoteRunScriptStepSuite) testPrepareConfig(removeAllErr error) {
 		Return(tmpDir, nil)
 	s.MockLocalFS.On("RemoveAll", tmpDir).Return(removeAllErr)
 	tmpFilePath := tmpDir + "/tmp_script.sh"
-	s.MockLocalFS.On("WriteFile", tmpFilePath, []byte("ls -al"), os.FileMode(0775)).
+	s.MockLocalFS.On("WriteFile", tmpFilePath, []byte("ls -al"), os.FileMode(0777)).
 		Return(nil)
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", "/root/3fs/storage"}).
-		Return("", nil)
-	s.MockRunner.On("Exec", "mktemp", []string{"-p", "/root/3fs/storage"}).
-		Return(tmpFilePath, nil)
+	s.MockFS.On("MkdirAll", "/root/3fs/storage").Return(nil)
+	s.MockFS.On("MkTempFile", "/root/3fs/storage").Return(tmpFilePath, nil)
 	s.MockRunner.On("Scp", tmpFilePath, tmpFilePath).Return(nil)
 	s.MockRunner.On("Exec", "bash", []string{tmpFilePath, "a", "b"}).Return("", nil)
 	s.MockRunner.On("Exec", "rm", []string{"-f", tmpFilePath}).Return("", nil)
@@ -437,6 +435,7 @@ func (s *remoteRunScriptStepSuite) testPrepareConfig(removeAllErr error) {
 	s.NoError(s.step.Execute(s.Ctx()))
 
 	s.MockLocalFS.AssertExpectations(s.T())
+	s.MockFS.AssertExpectations(s.T())
 	s.MockRunner.AssertExpectations(s.T())
 }
 

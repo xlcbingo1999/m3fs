@@ -102,7 +102,7 @@ type runContainerStep struct {
 func (s *runContainerStep) Execute(ctx context.Context) error {
 	workDir := getServiceWorkDir(s.Runtime.WorkDir)
 	etcDir := path.Join(workDir, "etc")
-	_, err := s.Em.Runner.Exec(ctx, "mkdir", "-p", etcDir)
+	err := s.Em.FS.MkdirAll(ctx, etcDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", etcDir)
 	}
@@ -113,7 +113,7 @@ func (s *runContainerStep) Execute(ctx context.Context) error {
 		return errors.Annotatef(err, "scp monitor_collector_main.toml")
 	}
 	logDir := path.Join(workDir, "log")
-	_, err = s.Em.Runner.Exec(ctx, "mkdir", "-p", logDir)
+	err = s.Em.FS.MkdirAll(ctx, logDir)
 	if err != nil {
 		return errors.Annotatef(err, "mkdir %s", logDir)
 	}

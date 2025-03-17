@@ -82,8 +82,8 @@ func (s *runContainerStepSuite) SetupTest() {
 func (s *runContainerStepSuite) Test() {
 	etcDir := "/root/3fs/monitor/etc"
 	logDir := "/root/3fs/monitor/log"
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", etcDir}).Return("", nil)
-	s.MockRunner.On("Exec", "mkdir", []string{"-p", logDir}).Return("", nil)
+	s.MockFS.On("MkdirAll", etcDir).Return(nil)
+	s.MockFS.On("MkdirAll", logDir).Return(nil)
 	s.MockRunner.On("Scp", "/tmp/3f-monitor.xxx/monitor_collector_main.toml",
 		"/root/3fs/monitor/etc/monitor_collector_main.toml").Return(nil)
 	img, err := s.Runtime.Cfg.Images.GetImage(config.ImageName3FS)
@@ -114,6 +114,7 @@ func (s *runContainerStepSuite) Test() {
 	s.NoError(s.step.Execute(s.Ctx()))
 
 	s.MockRunner.AssertExpectations(s.T())
+	s.MockFS.AssertExpectations(s.T())
 	s.MockDocker.AssertExpectations(s.T())
 }
 
