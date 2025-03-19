@@ -36,7 +36,12 @@ if [ -z "$1" ]; then
 fi
 
 targetDir=$1
-cat > $targetDir/ibdev2netdev <<EOF
+targetScript="$targetDir/ibdev2netdev"
+if [ -d "$targetScript" ]; then
+	rm -fr "$targetScript"
+fi
+
+cat > "$targetScript" <<EOF
 #!/bin/bash
 EOF
 
@@ -51,13 +56,13 @@ do
         state=Down
     fi
     if [ -n "$netdev" ]; then
-		cat <<EOF >> $targetDir/ibdev2netdev
+		cat <<EOF >> $targetScript
 echo "$ibdev port $ibport ==> $netdev ($state)"
 EOF
     fi
 done
 
-chmod +x $targetDir/ibdev2netdev
+chmod +x $targetScript
 `
 	createRdmaLinkScript = `#!/bin/bash
 
@@ -106,7 +111,7 @@ func (s *genIbdev2netdevScriptStep) Execute(ctx context.Context) error {
 		return errors.Trace(err)
 	}
 	defer func() {
-		if err := localEm.FS.RemoveAll(tmpDir); err != nil {
+		if err := localEm.FS.RemoveAll(ctx, tmpDir); err != nil {
 			s.Logger.Errorf("Failed to remove temporary directory %s: %v", tmpDir, err)
 		}
 	}()
@@ -191,7 +196,7 @@ func (s *createRdmaRxeLinkStep) Execute(ctx context.Context) error {
 		return errors.Trace(err)
 	}
 	defer func() {
-		if err := localEm.FS.RemoveAll(tmpDir); err != nil {
+		if err := localEm.FS.RemoveAll(ctx, tmpDir); err != nil {
 			s.Logger.Errorf("Failed to remove temporary directory %s: %v", tmpDir, err)
 		}
 	}()
