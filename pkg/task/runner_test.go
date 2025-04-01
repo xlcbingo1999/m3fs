@@ -17,6 +17,7 @@ package task
 import (
 	"testing"
 
+	"github.com/fatih/color"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/open3fs/m3fs/pkg/config"
@@ -78,4 +79,79 @@ func (s *runnerSuite) TestRun() {
 	s.NoError(s.runner.Run(s.Ctx()))
 
 	s.mockTask.AssertExpectations(s.T())
+}
+
+func (s *runnerSuite) testTaskInfoHighlighting() {
+	s.mockTask.On("Name").Return("mockTask")
+	s.mockTask.On("Run").Return(nil)
+
+	s.NoError(s.runner.Run(s.Ctx()))
+
+	s.mockTask.AssertExpectations(s.T())
+}
+
+func (s *runnerSuite) TestTaskInfoHighlightingWithValidColor() {
+	s.runner.cfg = &config.Config{
+		UI: config.UIConfig{
+			TaskInfoColor: "green",
+		},
+	}
+	s.testTaskInfoHighlighting()
+}
+
+func (s *runnerSuite) TestTaskInfoHighlightingWithNoneColor() {
+	s.runner.cfg = &config.Config{
+		UI: config.UIConfig{
+			TaskInfoColor: "none",
+		},
+	}
+	s.testTaskInfoHighlighting()
+}
+
+func (s *runnerSuite) TestTaskInfoHighlightingWithInvalidColor() {
+	s.runner.cfg = &config.Config{
+		UI: config.UIConfig{
+			TaskInfoColor: "invalid-color",
+		},
+	}
+	s.testTaskInfoHighlighting()
+}
+
+func (s *runnerSuite) TestTaskInfoHighlightingWithEmptyColor() {
+	s.runner.cfg = &config.Config{
+		UI: config.UIConfig{
+			TaskInfoColor: "",
+		},
+	}
+	s.testTaskInfoHighlighting()
+}
+
+func (s *runnerSuite) TestTaskInfoHighlightingWithNoUIConfig() {
+	s.runner.cfg = &config.Config{}
+	s.testTaskInfoHighlighting()
+}
+
+func (s *runnerSuite) TestGetColorAttribute() {
+	cases := []struct {
+		expected  color.Attribute
+		colorName string
+	}{
+		{color.FgHiGreen, "green"},
+		{color.FgHiCyan, "cyan"},
+		{color.FgHiYellow, "yellow"},
+		{color.FgHiBlue, "blue"},
+		{color.FgHiMagenta, "magenta"},
+		{color.FgHiRed, "red"},
+		{color.FgHiWhite, "white"},
+		{color.FgHiGreen, "GREEN"},
+		{color.FgHiCyan, "Cyan"},
+		{color.Attribute(-1), "none"},
+		{color.Attribute(-1), "NONE"},
+		{color.Attribute(-1), "invalid-color"},
+		{color.Attribute(-1), ""},
+	}
+
+	for _, c := range cases {
+		s.Equal(c.expected, getColorAttribute(c.colorName))
+	}
 }
