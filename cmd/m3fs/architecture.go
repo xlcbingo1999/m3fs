@@ -15,15 +15,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"sort"
-	"sync"
+	"strings"
 
 	"github.com/open3fs/m3fs/pkg/config"
 	"github.com/open3fs/m3fs/pkg/errors"
+	"github.com/open3fs/m3fs/pkg/external"
+	"github.com/open3fs/m3fs/pkg/log"
 	"github.com/open3fs/m3fs/pkg/network"
-	"github.com/open3fs/m3fs/pkg/render"
 	"github.com/open3fs/m3fs/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -103,100 +105,31 @@ func NewServiceError(serviceType config.ServiceType, err error) error {
 
 // ArchDiagram generates architecture diagrams for m3fs clusters
 type ArchDiagram struct {
-	cfg          *config.Config
-	renderer     *render.DiagramRenderer
-	archRenderer *render.ArchRenderer
-	dataProvider *render.ClusterDataProvider
-
-	mu sync.RWMutex
+	cfg     *config.Config
+	noColor bool
 }
 
-// ===== Constructors and Core Functions =====
-
-// NewArchDiagram creates a new ArchDiagram with default configuration
-func NewArchDiagram(cfg *config.Config) *ArchDiagram {
+// NewArchDiagram creates a new ArchDiagram.
+func NewArchDiagram(cfg *config.Config) (*ArchDiagram, error) {
 	if cfg == nil {
-		logrus.Warn("Creating ArchDiagram with nil config")
-		cfg = &config.Config{
-			Name:        "default",
-			NetworkType: "ethernet",
-		}
+		return nil, errors.Errorf("config is nil")
 	}
-
-	cfg = setDefaultConfig(cfg)
-	baseRenderer := render.NewDiagramRenderer(cfg)
 
 	archDiagram := &ArchDiagram{
-		cfg:      cfg,
-		renderer: baseRenderer,
+		cfg: cfg,
 	}
 
-	dataProvider := render.NewClusterDataProvider(
-		archDiagram.GetServiceNodeCounts,
-		archDiagram.GetClientNodes,
-		archDiagram.GetRenderableNodes,
-		archDiagram.getNodeServices,
-		archDiagram.GetTotalNodeCount,
-		archDiagram.getNetworkSpeed,
-		archDiagram.GetNetworkType,
-	)
-
-	archDiagram.dataProvider = dataProvider
-	archDiagram.archRenderer = render.NewArchRenderer(baseRenderer, dataProvider)
-
-	return archDiagram
-}
-
-// setDefaultConfig sets cluster.yml values for configuration
-func setDefaultConfig(cfg *config.Config) *config.Config {
-	if cfg.Name == "" {
-		cfg.Name = "cluster.yml"
-	}
-	if cfg.NetworkType == "" {
-		cfg.NetworkType = "ethernet"
-	}
-	return cfg
+	return archDiagram, nil
 }
 
 // Generate generates an architecture diagram
 func (g *ArchDiagram) Generate() string {
-	if g.cfg == nil {
-		return "Error: No configuration provided"
-	}
-
-	return g.archRenderer.Generate()
+	return g.Render()
 }
 
 // SetColorEnabled enables or disables color output in the diagram
 func (g *ArchDiagram) SetColorEnabled(enabled bool) {
-	g.archRenderer.SetColorEnabled(enabled)
-}
-
-// ===== Network Related Methods =====
-
-// GetNetworkType returns the type of network being used
-func (g *ArchDiagram) GetNetworkType() string {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
-	if g.cfg == nil {
-		return "ethernet"
-	}
-	return string(g.cfg.NetworkType)
-}
-
-// GetNetworkSpeed returns the network speed for the diagram
-func (g *ArchDiagram) GetNetworkSpeed() string {
-	return g.getNetworkSpeed()
-}
-
-// getNetworkSpeed returns the actual network speed based on network type
-func (g *ArchDiagram) getNetworkSpeed() string {
-	g.mu.RLock()
-	networkType := g.cfg.NetworkType
-	g.mu.RUnlock()
-
-	return network.GetNetworkSpeed(string(networkType))
+	g.noColor = !enabled
 }
 
 // ===== Node Basic Operations =====
@@ -221,8 +154,6 @@ func (g *ArchDiagram) checkNodeService(nodeName string, serviceType config.Servi
 
 // GetTotalNodeCount returns the total number of actual nodes
 func (g *ArchDiagram) GetTotalNodeCount() int {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
 
 	if g.cfg == nil {
 		return 0
@@ -250,8 +181,6 @@ func (g *ArchDiagram) GetTotalNodeCount() int {
 
 // GetServiceNodeCounts returns counts of nodes by service type
 func (g *ArchDiagram) GetServiceNodeCounts() map[config.ServiceType]int {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
 
 	if g.cfg == nil {
 		return nil
@@ -269,8 +198,6 @@ func (g *ArchDiagram) GetServiceNodeCounts() map[config.ServiceType]int {
 
 // GetServiceNodeCountsDetail returns detailed counts of nodes by service type
 func (g *ArchDiagram) GetServiceNodeCountsDetail() ArchNodeResults {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
 
 	if g.cfg == nil {
 		return nil
@@ -315,8 +242,6 @@ func (g *ArchDiagram) GetClientNodes() []string {
 
 // getServiceNodes returns nodes for a specific service type
 func (g *ArchDiagram) getServiceNodes(serviceType config.ServiceType) []string {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
 	return g.getServiceNodesInternal(serviceType)
 }
 
@@ -337,8 +262,6 @@ func (g *ArchDiagram) getServiceNodesInternal(serviceType config.ServiceType) []
 
 // getNodeServices returns the services running on a node
 func (g *ArchDiagram) getNodeServices(node string) []string {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
 
 	if g.cfg == nil {
 		return nil
@@ -492,8 +415,6 @@ func (g *ArchDiagram) getServiceNodeList(nodes []string, nodeGroups []string) ([
 
 // GetRenderableNodes returns service nodes to render in the diagram
 func (g *ArchDiagram) GetRenderableNodes() []string {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
 
 	allNodes := g.buildOrderedNodeList()
 	if len(allNodes) == 0 {
@@ -516,4 +437,46 @@ func (g *ArchDiagram) GetRenderableNodes() []string {
 	}
 
 	return g.sortNodesByIP(renderableNodes)
+}
+
+// Render renders the architecture diagram
+func (g *ArchDiagram) Render() string {
+	b := &strings.Builder{}
+
+	render := NewDiagramRenderer(g.cfg)
+	render.ColorEnabled = !g.noColor
+
+	clientNodes := g.GetClientNodes()
+	storageNodes := g.GetRenderableNodes()
+	serviceCounts := g.GetServiceNodeCounts()
+	totalNodeCount := g.GetTotalNodeCount()
+
+	clientDisplayCount := render.CalculateMaxNodeCount(len(clientNodes))
+	storageDisplayCount := render.CalculateMaxNodeCount(len(storageNodes))
+
+	clientSectionWidth := render.CalculateNodeRowWidth(clientDisplayCount) - 2
+	render.RenderHeader(b, clientSectionWidth)
+
+	if len(clientNodes) > 0 {
+		render.RenderClientSection(b, clientNodes)
+	}
+
+	if len(clientNodes) > 0 && len(storageNodes) > 0 {
+		networkType := string(g.cfg.NetworkType)
+		localRunnerCfg := &external.LocalRunnerCfg{
+			Logger:         log.Logger,
+			MaxExitTimeout: g.cfg.CmdMaxExitTimeout,
+		}
+		localRunner := external.NewLocalRunner(localRunnerCfg)
+		speed := network.GetSpeed(context.TODO(), localRunner, g.cfg.NetworkType)
+		render.RenderNetworkConnection(b, networkType, speed, clientDisplayCount, storageDisplayCount)
+	}
+
+	if len(storageNodes) > 0 {
+		render.RenderStorageSection(b, storageNodes, g.getNodeServices)
+	}
+
+	render.RenderSummarySection(b, serviceCounts, totalNodeCount)
+
+	return b.String()
 }
