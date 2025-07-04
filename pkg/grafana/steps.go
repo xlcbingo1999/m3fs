@@ -37,6 +37,18 @@ var (
 
 	// DashboardTmpl is the template content of 3fs grafana dashboard
 	DashboardTmpl []byte
+	// Dashboard3FSClusterTmpl is the template content of 3fs cluster grafana dashboard
+	Dashboard3FSClusterTmpl []byte
+	// Dashboard3FSFoundationTmpl is the template content of 3fs foundationdb grafana dashboard
+	Dashboard3FSFoundationTmpl []byte
+	// Dashboard3FSFuseTmpl is the template content of 3fs fuse grafana dashboard
+	Dashboard3FSFuseTmpl []byte
+	// Dashboard3FSMetaTmpl is the template content of 3fs meta grafana dashboard
+	Dashboard3FSMetaTmpl []byte
+	// Dashboard3FSMgmtdTmpl is the template content of 3fs mgmtd grafana dashboard
+	Dashboard3FSMgmtdTmpl []byte
+	// Dashboard3FSStorageTmpl is the template content of 3fs storage grafana dashboard
+	Dashboard3FSStorageTmpl []byte
 	// DashboardProvisionTmpl is the template content of 3fs dashboard provision file
 	DashboardProvisionTmpl []byte
 	// DatasourceProvisionTmpl is the template content of 3fs datasource provision file
@@ -45,7 +57,37 @@ var (
 
 func init() {
 	var err error
-	DashboardTmpl, err = templatesFs.ReadFile("templates/dashboard.json.tmpl")
+	DashboardTmpl, err = templatesFs.ReadFile("templates/dashboard_m3fs.json.tmpl")
+	if err != nil {
+		panic(err)
+	}
+
+	Dashboard3FSClusterTmpl, err = templatesFs.ReadFile("templates/dashboard_3fs_cluster.json.tmpl")
+	if err != nil {
+		panic(err)
+	}
+
+	Dashboard3FSFoundationTmpl, err = templatesFs.ReadFile("templates/dashboard_3fs_foundationdb.json.tmpl")
+	if err != nil {
+		panic(err)
+	}
+
+	Dashboard3FSFuseTmpl, err = templatesFs.ReadFile("templates/dashboard_3fs_fuse.json.tmpl")
+	if err != nil {
+		panic(err)
+	}
+
+	Dashboard3FSMetaTmpl, err = templatesFs.ReadFile("templates/dashboard_3fs_meta.json.tmpl")
+	if err != nil {
+		panic(err)
+	}
+
+	Dashboard3FSMgmtdTmpl, err = templatesFs.ReadFile("templates/dashboard_3fs_mgmtd.json.tmpl")
+	if err != nil {
+		panic(err)
+	}
+
+	Dashboard3FSStorageTmpl, err = templatesFs.ReadFile("templates/dashboard_3fs_storage.json.tmpl")
 	if err != nil {
 		panic(err)
 	}
@@ -117,10 +159,46 @@ func (s *genGrafanaYamlStep) Execute(ctx context.Context) error {
 		return errors.Annotate(err, "generate dashboard provisioning file")
 	}
 
-	err = s.genYaml(ctx, path.Join(workdir, "dashboards"), "3fs.json",
+	err = s.genYaml(ctx, path.Join(workdir, "dashboards"), "m3fs.json",
 		DashboardTmpl, nil)
 	if err != nil {
 		return errors.Annotate(err, "generate 3fs dashboard json file")
+	}
+
+	err = s.genYaml(ctx, path.Join(workdir, "dashboards"), "3fs_cluster.json",
+		Dashboard3FSClusterTmpl, nil)
+	if err != nil {
+		return errors.Annotate(err, "generate 3fs Foundationdb dashboard json file")
+	}
+
+	err = s.genYaml(ctx, path.Join(workdir, "dashboards"), "3fs_foundationdb.json",
+		Dashboard3FSFoundationTmpl, nil)
+	if err != nil {
+		return errors.Annotate(err, "generate 3fs Foundationdb dashboard json file")
+	}
+
+	err = s.genYaml(ctx, path.Join(workdir, "dashboards"), "3fs_fuse.json",
+		Dashboard3FSFuseTmpl, nil)
+	if err != nil {
+		return errors.Annotate(err, "generate 3fs Foundationdb dashboard json file")
+	}
+
+	err = s.genYaml(ctx, path.Join(workdir, "dashboards"), "3fs_meta.json",
+		Dashboard3FSMetaTmpl, nil)
+	if err != nil {
+		return errors.Annotate(err, "generate 3fs Foundationdb dashboard json file")
+	}
+
+	err = s.genYaml(ctx, path.Join(workdir, "dashboards"), "3fs_mgmtd.json",
+		Dashboard3FSMgmtdTmpl, nil)
+	if err != nil {
+		return errors.Annotate(err, "generate 3fs Foundationdb dashboard json file")
+	}
+
+	err = s.genYaml(ctx, path.Join(workdir, "dashboards"), "3fs_storage.json",
+		Dashboard3FSStorageTmpl, nil)
+	if err != nil {
+		return errors.Annotate(err, "generate 3fs Foundationdb dashboard json file")
 	}
 
 	return nil

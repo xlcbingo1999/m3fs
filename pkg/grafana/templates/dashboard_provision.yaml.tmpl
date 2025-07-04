@@ -1,10 +1,52 @@
 apiVersion: 1
 
 providers:
-  - name: '3fs'
+  - name: 'm3fs'
     type: file
     disableDeletion: false
     updateIntervalSeconds: 60
     options:
-      path: /etc/grafana/provisioning/dashboards/3fs.json
+      path: /etc/grafana/provisioning/dashboards/m3fs.json
+      foldersFromFilesStructure: true
+  - name: '3fs_cluster'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 60
+    options:
+      path: /etc/grafana/provisioning/dashboards/3fs_cluster.json
+      foldersFromFilesStructure: true
+  - name: '3fs_foundationdb'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 60
+    options:
+      path: /etc/grafana/provisioning/dashboards/3fs_foundationdb.json
+      foldersFromFilesStructure: true
+  - name: '3fs_fuse'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 60
+    options:
+      path: /etc/grafana/provisioning/dashboards/3fs_fuse.json
+      foldersFromFilesStructure: true
+  - name: '3fs_meta'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 60
+    options:
+      path: /etc/grafana/provisioning/dashboards/3fs_meta.json
+      foldersFromFilesStructure: true
+  - name: '3fs_mgmtd'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 60
+    options:
+      path: /etc/grafana/provisioning/dashboards/3fs_mgmtd.json
+      foldersFromFilesStructure: true
+  - name: '3fs_storage'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 60
+    options:
+      path: /etc/grafana/provisioning/dashboards/3fs_storage.json
       foldersFromFilesStructure: true
